@@ -41,6 +41,9 @@ function Layout() {
             <NavLink to="/linear-regression" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               Linear regression
             </NavLink>
+            <NavLink to="/k-means" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              K-means
+            </NavLink>
           </nav>
           <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label="Toggle color theme">
             {(theme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark' ? '🌙' : '☀️'}
