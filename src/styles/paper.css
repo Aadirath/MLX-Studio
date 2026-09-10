@@ -1,0 +1,289 @@
+.paper {
+  --ink: #23262b;
+  --muted: #726c5d;
+  --line: #dcd5c0;
+  --paper: #f3efe4;
+  --paper-card: #fcfaf4;
+  --blue: #2f5d8a;
+  --blue-soft: #e4ecf3;
+  --rust: #a6462d;
+  --rust-soft: #f3e4df;
+  --good: #3f7d53;
+
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--ink);
+}
+
+.paper h1 {
+  font-family: 'Lora', serif;
+  font-weight: 600;
+  font-size: 28px;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.paper .sub {
+  color: var(--muted);
+  font-size: 14.5px;
+  margin: 0 0 20px;
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+.paper button,
+.paper a.primaryBtn,
+.paper a.ghostBtn,
+.paper a.cardBtn {
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 5px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-block;
+}
+
+/* home cards */
+.paper .cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 720px) {
+  .paper .cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.paper .card {
+  border: 1px solid var(--line);
+  background: var(--paper-card);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.paper .card .ico {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.paper .card h3 {
+  font-family: 'Lora', serif;
+  font-size: 15.5px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+
+.paper .card p {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 14px;
+  flex: 1;
+}
+
+.paper .card .cardBtn {
+  background: var(--blue);
+  color: #fff;
+  border: 1px solid var(--blue);
+  padding: 8px 0;
+  font-size: 13px;
+  text-align: center;
+}
+
+.paper .card .cardBtn:hover {
+  background: #274d73;
+}
+
+/* board / overview */
+.paper .board {
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 0 var(--line);
+}
+
+.paper .ovBox {
+  padding: 24px;
+  max-width: 520px;
+}
+
+.paper .ovBox h1 {
+  font-size: 24px;
+}
+
+.paper .objList,
+.paper .preList {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  font-size: 13.5px;
+}
+
+.paper .objList li {
+  margin-bottom: 6px;
+  padding-left: 14px;
+  position: relative;
+}
+
+.paper .objList li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--muted);
+}
+
+.paper .preList li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+
+.paper .preList .box {
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--ink);
+  margin-top: 2px;
+  flex: none;
+}
+
+.paper .sectionLabel {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.paper .ovFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.paper .pill {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 4px 11px;
+}
+
+.paper .primaryBtn {
+  background: var(--blue);
+  color: #fff;
+  border: 1px solid var(--blue);
+  padding: 9px 20px;
+  font-size: 13.5px;
+}
+
+.paper .primaryBtn:hover {
+  background: #274d73;
+}
+
+.paper .ghostBtn {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 9px 16px;
+  font-size: 13px;
+}
+
+.paper .ghostBtn:hover {
+  background: #efeadb;
+}
+
+/* quiz cta on simulation pages */
+.paper .quizCta {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* quiz */
+.paper .quizBox {
+  padding: 24px;
+  max-width: 560px;
+}
+
+.paper .qCard {
+  border: 1px solid var(--line);
+  padding: 16px;
+  margin-bottom: 14px;
+  background: var(--paper-card);
+}
+
+.paper .qPrompt {
+  font-size: 14px;
+  margin: 0 0 12px;
+  font-weight: 500;
+}
+
+.paper .qOpts {
+  display: flex;
+  flex-direction: column;
+}
+
+.paper .qOpt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  padding: 9px 12px;
+  font-size: 13px;
+  margin-bottom: 7px;
+  border-radius: 4px;
+  color: var(--ink);
+}
+
+.paper .qOpt:hover:not(:disabled) {
+  background: #efeadb;
+}
+
+.paper .qOpt.correct {
+  background: #e4f0e8;
+  border-color: var(--good);
+}
+
+.paper .qOpt.wrong {
+  background: var(--rust-soft);
+  border-color: var(--rust);
+}
+
+.paper .qOpt:disabled {
+  cursor: default;
+}
+
+.paper .qExplain {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* summary */
+.paper .sumBox {
+  padding: 26px;
+  max-width: 480px;
+}
+
+.paper .sumStat {
+  display: flex;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13.5px;
+}
+
+.paper .sumStat b {
+  font-weight: 600;
+}
+
+.paper .sumFooter {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}

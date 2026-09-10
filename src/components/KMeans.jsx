@@ -78,7 +78,7 @@ function computeStep(sim) {
   }
 }
 
-function KMeans() {
+function KMeans({ onStepsChange } = {}) {
   const [sim, setSim] = useState(INITIAL_SIM)
   const [running, setRunning] = useState(false)
   const [annotation, setAnnotation] = useState(INITIAL_ANNOTATION)
@@ -91,6 +91,10 @@ function KMeans() {
   }, [sim])
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  useEffect(() => {
+    onStepsChange?.(sim.iter)
+  }, [sim.iter, onStepsChange])
 
   function doStep() {
     const result = computeStep(simRef.current)

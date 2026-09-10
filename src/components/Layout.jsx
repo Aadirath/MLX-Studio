@@ -38,10 +38,10 @@ function Layout() {
             <NavLink to="/about" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               About
             </NavLink>
-            <NavLink to="/linear-regression" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            <NavLink to="/topic/linear-regression" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               Linear regression
             </NavLink>
-            <NavLink to="/k-means" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            <NavLink to="/topic/k-means" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               K-means
             </NavLink>
           </nav>

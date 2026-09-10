@@ -102,7 +102,7 @@ function computeStep(sim, learningRate, guess) {
   }
 }
 
-function LinearRegression() {
+function LinearRegression({ onStepsChange } = {}) {
   const [sim, setSim] = useState(INITIAL_SIM)
   const [learningRate, setLearningRate] = useState(0.3)
   const [predictBeforeStep, setPredictBeforeStep] = useState(true)
@@ -118,6 +118,10 @@ function LinearRegression() {
   }, [sim])
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  useEffect(() => {
+    onStepsChange?.(sim.step)
+  }, [sim.step, onStepsChange])
 
   function doStep(guess) {
     const result = computeStep(simRef.current, learningRate, guess)
