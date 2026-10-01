@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLX Studio — Go further panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{ --paper:#F3EFE4; --ink:#23262B; --muted:#726C5D; --line:#DCD5C0; --blue:#2F5D8A; --blue-soft:#E4ECF3; }
+  *{ box-sizing:border-box; }
+  body{ font-family:'Inter',system-ui,sans-serif; color:var(--ink); background:var(--paper); padding:32px 20px; margin:0; }
+  .wrap{ max-width:900px; margin:0 auto; }
+  h2{ font-family:'Lora',serif; font-size:18px; margin:0 0 4px; }
+  .sub{ color:var(--muted); font-size:13px; margin:0 0 18px; }
+  .cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  @media (max-width:720px){ .cards{ grid-template-columns:1fr; } }
+  a.card{ display:block; border:1px solid var(--line); background:#FCFAF4; padding:16px; border-radius:6px; text-decoration:none; color:var(--ink); }
+  a.card:hover{ background:#EFEADB; }
+  .cardLabel{ font-size:10.5px; text-transform:uppercase; letter-spacing:0.05em; color:var(--blue); font-weight:600; margin-bottom:6px; }
+  .cardTitle{ font-size:14px; font-weight:600; margin-bottom:5px; }
+  .cardDesc{ font-size:12px; color:var(--muted); line-height:1.5; }
+  select{ margin-bottom:18px; padding:6px 10px; border-radius:5px; border:1px solid var(--line); font-family:'Inter',sans-serif; font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Want to go further?</h2>
+  <p class="sub">This panel's links change based on which topic page it's embedded in. Preview as:</p>
+  <select id="topicSelect">
+    <option value="linreg">Linear Regression</option>
+    <option value="kmeans">K-Means</option>
+  </select>
+  <div class="cards" id="cards"></div>
+</div>
+
+<script>
+const LINKS = {
+  linreg: [
+    {
+      label: "Real code",
+      title: "scikit-learn's Linear Regression example",
+      desc: "The official worked example, with one-click Launch Binder and Launch JupyterLite buttons for a live notebook.",
+      href: "https://scikit-learn.org/1.6/auto_examples/linear_model/plot_ols.html"
+    },
+    {
+      label: "Another angle",
+      title: "Virtual Labs: Linear Regression",
+      desc: "IIT Roorkee's lab version of this experiment, with its own theory, procedure, and assessment.",
+      href: "https://ml-iitr.vlabs.ac.in/exp/linear-regression/"
+    },
+    {
+      label: "Open playground",
+      title: "Start a blank notebook in Colab",
+      desc: "Free-form space to try the scikit-learn code yourself, no setup required.",
+      href: "https://colab.research.google.com"
+    }
+  ],
+  kmeans: [
+    {
+      label: "Real code",
+      title: "scikit-learn's Clustering examples",
+      desc: "Official worked examples for K-Means and related methods, each with live Binder and JupyterLite notebooks.",
+      href: "https://scikit-learn.org/stable/auto_examples/cluster/index.html"
+    },
+    {
+      label: "Another angle",
+      title: "Virtual Labs: K-Means Clustering",
+      desc: "IIT Roorkee's lab version of this experiment, with its own theory, procedure, and assessment.",
+      href: "https://ml-iitr.vlabs.ac.in/exp/kmeans-clustering/"
+    },
+    {
+      label: "Open playground",
+      title: "Start a blank notebook in Colab",
+      desc: "Free-form space to try the scikit-learn code yourself, no setup required.",
+      href: "https://colab.research.google.com"
+    }
+  ]
+};
+
+function render(topic){
+  const cards = document.getElementById('cards');
+  cards.innerHTML = LINKS[topic].map(c => `
+    <a class="card" href="${c.href}" target="_blank" rel="noopener">
+      <div class="cardLabel">${c.label}</div>
+      <div class="cardTitle">${c.title}</div>
+      <div class="cardDesc">${c.desc}</div>
+    </a>
+  `).join('');
+}
+document.getElementById('topicSelect').addEventListener('change', e => render(e.target.value));
+render('linreg');
+</script>
+</body>
+</html>
