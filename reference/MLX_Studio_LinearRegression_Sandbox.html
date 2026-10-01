@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLX Studio — Linear Regression Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3EFE4; --ink:#23262B; --muted:#726C5D;
+    --line:#DCD5C0; --blue:#2F5D8A; --blue-soft:#E4ECF3; --rust:#A6462D; --rust-soft:#F3E4DF; --good:#3F7D53;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Inter',system-ui,sans-serif; color:var(--ink); background-color:var(--paper);
+    background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:28px 28px; padding:32px 20px 60px; min-height:100vh; }
+  .wrap{ max-width:1000px; margin:0 auto; }
+  h1{ font-family:'Lora',serif; font-weight:600; font-size:28px; margin:0 0 6px; }
+  header p{ margin:0 0 20px; color:var(--muted); font-size:14.5px; max-width:65ch; line-height:1.5; }
+  .board{ background:#FCFAF4; border:1px solid var(--line); box-shadow:0 1px 0 var(--line); }
+  .layout{ display:grid; grid-template-columns:320px 1fr; gap:0; }
+  @media (max-width:800px){ .layout{ grid-template-columns:1fr; } }
+  .inputPanel{ padding:20px; border-right:1px solid var(--line); }
+  .main{ padding:20px 22px; }
+
+  .modeRow{ display:flex; gap:6px; margin-bottom:16px; }
+  .modeRow button{ flex:1; padding:7px 0; font-size:12.5px; border:1px solid var(--line); background:var(--paper); border-radius:5px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .modeRow button.active{ background:var(--blue-soft); border-color:var(--blue); color:var(--blue); font-weight:600; }
+
+  table.dataTable{ width:100%; border-collapse:collapse; font-size:13px; margin-bottom:10px; }
+  table.dataTable th{ text-align:left; font-size:11px; color:var(--muted); padding:4px 4px; }
+  table.dataTable td{ padding:2px; }
+  table.dataTable input{ width:100%; padding:5px 6px; border:1px solid var(--line); border-radius:4px; font-size:13px; font-family:'Inter',sans-serif; }
+  .rmBtn{ background:none; border:none; color:var(--rust); cursor:pointer; font-size:15px; padding:0 4px; }
+
+  .btnRow{ display:flex; gap:8px; margin-bottom:14px; }
+  button.small{ font-size:12px; padding:6px 10px; border:1px solid var(--line); background:var(--paper); border-radius:5px; cursor:pointer; font-family:'Inter',sans-serif; }
+  button.small:hover{ background:#EFEADB; }
+
+  .fileDrop{ border:1.5px dashed var(--line); border-radius:6px; padding:18px; text-align:center; font-size:12.5px; color:var(--muted); margin-bottom:12px; }
+  .fileDrop input{ margin-top:8px; }
+  .csvNote{ font-size:11.5px; color:var(--muted); line-height:1.5; }
+
+  .computeBtn{ width:100%; padding:10px; background:var(--blue); color:#fff; border:none; border-radius:5px; font-size:13.5px; cursor:pointer; font-family:'Inter',sans-serif; font-weight:500; }
+  .computeBtn:hover{ background:#274d73; }
+  .computeBtn:disabled{ background:#A9B9C7; cursor:not-allowed; }
+
+  .errBox{ background:var(--rust-soft); border-left:3px solid var(--rust); padding:10px 12px; font-size:12.5px; color:var(--ink); margin-top:10px; border-radius:2px; }
+
+  .chartRow{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .chartTitle{ font-size:12.5px; color:var(--muted); }
+  .readouts{ display:flex; gap:16px; font-size:12.5px; }
+  .readouts b{ font-weight:600; }
+  svg{ width:100%; height:auto; display:block; }
+  .axLbl{ font-size:10.5px; fill:var(--muted); font-family:'Inter',sans-serif; }
+  .resultBox{ margin-top:14px; padding:12px 14px; background:var(--blue-soft); border-left:3px solid var(--blue); font-size:13px; line-height:1.6; }
+  .placeholder{ color:var(--muted); font-size:13.5px; padding:60px 20px; text-align:center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Linear Regression — sandbox</h1>
+    <p>Bring your own data: enter points manually or upload a CSV with two numeric columns. This fits a line using the same ordinary least squares formula as the guided lesson, just on whatever data you give it.</p>
+  </header>
+
+  <div class="board">
+    <div class="layout">
+      <div class="inputPanel">
+        <div class="modeRow">
+          <button id="modeManual" class="active">Enter manually</button>
+          <button id="modeCsv">Upload CSV</button>
+        </div>
+
+        <div id="manualPanel">
+          <table class="dataTable" id="dataTable">
+            <thead><tr><th>X</th><th>Y</th><th></th></tr></thead>
+            <tbody id="dataRows"></tbody>
+          </table>
+          <div class="btnRow">
+            <button class="small" id="addRow">+ Add row</button>
+            <button class="small" id="clearRows">Clear all</button>
+          </div>
+        </div>
+
+        <div id="csvPanel" style="display:none;">
+          <div class="fileDrop">
+            Upload a .csv file<br>
+            <input type="file" id="csvFile" accept=".csv">
+          </div>
+          <p class="csvNote">First row can be a header or data. We use the first two numeric columns found. Non-numeric rows are skipped.</p>
+        </div>
+
+        <button class="computeBtn" id="computeBtn">Fit a line to this data</button>
+        <div id="errArea"></div>
+      </div>
+
+      <div class="main" id="mainArea">
+        <div class="placeholder">Add at least two points, then click "Fit a line to this data".</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const dataRows = document.getElementById('dataRows');
+  const addRowBtn = document.getElementById('addRow');
+  const clearRowsBtn = document.getElementById('clearRows');
+  const modeManual = document.getElementById('modeManual');
+  const modeCsv = document.getElementById('modeCsv');
+  const manualPanel = document.getElementById('manualPanel');
+  const csvPanel = document.getElementById('csvPanel');
+  const csvFile = document.getElementById('csvFile');
+  const computeBtn = document.getElementById('computeBtn');
+  const errArea = document.getElementById('errArea');
+  const mainArea = document.getElementById('mainArea');
+
+  let csvRows = null; // [[x,y], ...] when a CSV has been loaded
+
+  function addRow(x, y){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td><input type="text" class="xIn" value="${x!==undefined?x:''}" placeholder="e.g. 2.5"></td>
+                     <td><input type="text" class="yIn" value="${y!==undefined?y:''}" placeholder="e.g. 4.1"></td>
+                     <td><button class="rmBtn" title="Remove row">✕</button></td>`;
+    tr.querySelector('.rmBtn').addEventListener('click', ()=>{ tr.remove(); });
+    dataRows.appendChild(tr);
+  }
+  for(let i=0;i<4;i++) addRow();
+
+  addRowBtn.addEventListener('click', ()=>addRow());
+  clearRowsBtn.addEventListener('click', ()=>{ dataRows.innerHTML=''; addRow(); addRow(); });
+
+  modeManual.addEventListener('click', ()=>{
+    modeManual.classList.add('active'); modeCsv.classList.remove('active');
+    manualPanel.style.display='block'; csvPanel.style.display='none';
+  });
+  modeCsv.addEventListener('click', ()=>{
+    modeCsv.classList.add('active'); modeManual.classList.remove('active');
+    csvPanel.style.display='block'; manualPanel.style.display='none';
+  });
+
+  csvFile.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev)=>{
+      const text = ev.target.result;
+      const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+      const parsed = [];
+      for(const line of lines){
+        const cells = line.split(',').map(c=>c.trim());
+        if(cells.length < 2) continue;
+        const x = parseFloat(cells[0]), y = parseFloat(cells[1]);
+        if(!isNaN(x) && !isNaN(y)) parsed.push([x,y]);
+      }
+      csvRows = parsed;
+      errArea.innerHTML = `<div class="csvNote" style="margin-top:8px;">Loaded ${parsed.length} valid numeric rows from ${file.name}.</div>`;
+    };
+    reader.readAsText(file);
+  });
+
+  function getManualData(){
+    const xs = dataRows.querySelectorAll('.xIn'), ys = dataRows.querySelectorAll('.yIn');
+    const pts = [];
+    for(let i=0;i<xs.length;i++){
+      const xv = xs[i].value.trim(), yv = ys[i].value.trim();
+      if(xv==='' && yv==='') continue;
+      const x = parseFloat(xv), y = parseFloat(yv);
+      if(isNaN(x) || isNaN(y)) return { error: `Row ${i+1} has a non-numeric value. Every row needs two numbers.` };
+      pts.push([x,y]);
+    }
+    return { points: pts };
+  }
+
+  function ols(pts){
+    const n = pts.length;
+    const xbar = pts.reduce((a,p)=>a+p[0],0)/n;
+    const ybar = pts.reduce((a,p)=>a+p[1],0)/n;
+    let sxy=0, sxx=0;
+    pts.forEach(p=>{ sxy += (p[0]-xbar)*(p[1]-ybar); sxx += (p[0]-xbar)**2; });
+    if(sxx === 0) return null; // all x identical, slope undefined
+    const b1 = sxy/sxx, b0 = ybar - b1*xbar;
+    return {b0,b1,xbar,ybar};
+  }
+  function mse(pts, b0, b1){
+    let s=0; pts.forEach(p=>{ const e = p[1]-(b1*p[0]+b0); s+=e*e; });
+    return s/pts.length;
+  }
+
+  computeBtn.addEventListener('click', ()=>{
+    errArea.innerHTML = '';
+    let points;
+    if(modeCsv.classList.contains('active')){
+      if(!csvRows){ errArea.innerHTML = '<div class="errBox">Upload a CSV file first.</div>'; return; }
+      points = csvRows;
+    } else {
+      const r = getManualData();
+      if(r.error){ errArea.innerHTML = `<div class="errBox">${r.error}</div>`; return; }
+      points = r.points;
+    }
+    if(points.length < 2){ errArea.innerHTML = '<div class="errBox">Need at least 2 points to fit a line.</div>'; return; }
+    const fit = ols(points);
+    if(!fit){ errArea.innerHTML = '<div class="errBox">All your X values are identical, a line\'s slope is undefined for a single vertical scatter. Vary the X values and try again.</div>'; return; }
+    renderResult(points, fit);
+  });
+
+  function renderResult(points, fit){
+    const xs = points.map(p=>p[0]), ys = points.map(p=>p[1]);
+    const xMin0=Math.min(...xs), xMax0=Math.max(...xs), yMin0=Math.min(...ys), yMax0=Math.max(...ys);
+    const xPad = (xMax0-xMin0)*0.15 || 1, yPad = (yMax0-yMin0)*0.15 || 1;
+    const xMin=xMin0-xPad, xMax=xMax0+xPad, yMin=yMin0-yPad, yMax=yMax0+yPad;
+    const padL=52, padR=20, padT=16, padB=36, W=560, H=340;
+    const plotW=W-padL-padR, plotH=H-padT-padB;
+    const px = x => padL + (x-xMin)/(xMax-xMin)*plotW;
+    const py = y => padT + plotH - (y-yMin)/(yMax-yMin)*plotH;
+
+    const theMse = mse(points, fit.b0, fit.b1);
+
+    let s = '';
+    s += `<line x1="${px(xMin)}" y1="${py(0>=yMin&&0<=yMax?0:yMin)}" x2="${px(xMax)}" y2="${py(0>=yMin&&0<=yMax?0:yMin)}" stroke="#C9C1A8"/>`;
+    s += `<line x1="${px(xMin0 - xPad*0.3)}" y1="${py(yMin)}" x2="${px(xMin0 - xPad*0.3)}" y2="${py(yMax)}" stroke="#C9C1A8"/>`;
+    points.forEach(p=>{ s += `<circle cx="${px(p[0])}" cy="${py(p[1])}" r="4" fill="var(--ink)"/>`; });
+    points.forEach(p=>{
+      const predY = fit.b1*p[0]+fit.b0;
+      s += `<line x1="${px(p[0])}" y1="${py(p[1])}" x2="${px(p[0])}" y2="${py(predY)}" stroke="var(--rust)" stroke-width="1" stroke-dasharray="2 2" opacity="0.55"/>`;
+    });
+    s += `<line x1="${px(xMin)}" y1="${py(fit.b1*xMin+fit.b0)}" x2="${px(xMax)}" y2="${py(fit.b1*xMax+fit.b0)}" stroke="var(--blue)" stroke-width="2.5"/>`;
+
+    mainArea.innerHTML = `
+      <div class="chartRow">
+        <span class="chartTitle">${points.length} points, your data</span>
+        <div class="readouts"><span>MSE <b style="color:var(--rust)">${theMse.toFixed(3)}</b></span></div>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter plot of your data with a fitted regression line">${s}</svg>
+      <div class="resultBox">
+        Fitted line: <b>ŷ = ${fit.b0.toFixed(3)} + ${fit.b1.toFixed(3)}x</b><br>
+        Slope (b₁): ${fit.b1.toFixed(3)} — for every 1 unit increase in x, y changes by about ${fit.b1.toFixed(3)}.<br>
+        Intercept (b₀): ${fit.b0.toFixed(3)} — the line's predicted y when x is 0.
+      </div>
+    `;
+  }
+})();
+</script>
+</body>
+</html>
