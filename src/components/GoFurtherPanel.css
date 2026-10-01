@@ -1,0 +1,64 @@
+.goFurther {
+  --ink: #23262b;
+  --muted: #726c5d;
+  --line: #dcd5c0;
+  --paper-card: #fcfaf4;
+  --blue: #2f5d8a;
+
+  margin-top: 24px;
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.goFurther h2 {
+  font-family: 'Lora', serif;
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.goFurther-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .goFurther-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.goFurther-card {
+  display: block;
+  border: 1px solid var(--line);
+  background: var(--paper-card);
+  padding: 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.goFurther-card:hover {
+  background: #efeadb;
+}
+
+.goFurther .cardLabel {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--blue);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.goFurther .cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.goFurther .cardDesc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}

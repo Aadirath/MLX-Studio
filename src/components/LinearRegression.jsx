@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import GoFurtherPanel from './GoFurtherPanel.jsx'
 import './LinearRegression.css'
 
 const X = [1, 2, 3, 4, 5, 6, 6.5, 7, 8, 9]
@@ -23,6 +24,20 @@ const OBSERVE_OPTIONS = [
   'No relationship, the prices look random',
 ]
 const OBSERVE_CORRECT = 0
+
+const STAGES = [
+  { key: 'context', label: 'The problem' },
+  { key: 'table', label: 'The data' },
+  { key: 'observe', label: 'Spot the pattern' },
+  { key: 'predict', label: 'Make a prediction' },
+  { key: 'trend', label: 'Fit a line by hand' },
+  { key: 'concept', label: 'Name the parts' },
+  { key: 'math', label: 'Measure the error' },
+  { key: 'playground', label: 'Minimise the error' },
+  { key: 'derive', label: 'Derive the formula' },
+  { key: 'reveal', label: 'The OLS formula' },
+  { key: 'bestfit', label: 'Best fit on real data' },
+]
 
 function mse(m, b) {
   let s = 0
@@ -233,8 +248,35 @@ function NewFlatMarker() {
   )
 }
 
+function StageNav({ stage, furthestIdx, onJump }) {
+  return (
+    <div className="linreg-stagenav">
+      <p className="stageNavTitle">Stages</p>
+      <ol className="stageList">
+        {STAGES.map((s, i) => {
+          const reached = i <= furthestIdx
+          const current = s.key === stage
+          return (
+            <li key={s.key}>
+              <button
+                type="button"
+                className={`stageNavItem${current ? ' active' : ''}${!reached ? ' locked' : ''}`}
+                disabled={!reached}
+                onClick={() => onJump(s.key)}
+              >
+                {s.label}
+              </button>
+            </li>
+          )
+        })}
+      </ol>
+    </div>
+  )
+}
+
 function LinearRegression({ onStepsChange } = {}) {
   const [stage, setStage] = useState('context')
+  const [furthestIdx, setFurthestIdx] = useState(0)
 
   // discovery-stage state
   const [guessPick, setGuessPick] = useState(null)
@@ -252,6 +294,11 @@ function LinearRegression({ onStepsChange } = {}) {
     onStepsChange?.(stepsSeen)
   }, [stepsSeen, onStepsChange])
 
+  useEffect(() => {
+    const idx = STAGES.findIndex((s) => s.key === stage)
+    setFurthestIdx((f) => Math.max(f, idx))
+  }, [stage])
+
   const manualMse = mse(manualM, manualB)
   useEffect(() => {
     if (manualMse < manualBest) setManualBest(manualMse)
@@ -262,11 +309,13 @@ function LinearRegression({ onStepsChange } = {}) {
     setStage(next)
   }
 
+  let content
+
   // ---------- discovery stages ----------
 
   if (stage === 'context') {
-    return (
-      <div className="linreg">
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">
             A friend is about to sell a flat and wants some idea of a <b>fair price</b> before listing it. They do
@@ -286,13 +335,11 @@ function LinearRegression({ onStepsChange } = {}) {
             Data coming up next
           </div>
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'table') {
-    return (
-      <div className="linreg">
+  } else if (stage === 'table') {
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">
             Before jumping into any graph, let's get comfortable with the numbers themselves. Each row below is one
@@ -329,15 +376,13 @@ function LinearRegression({ onStepsChange } = {}) {
             </tbody>
           </table>
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'observe') {
+  } else if (stage === 'observe') {
     const answered = observePick !== null
     const correct = observePick === OBSERVE_CORRECT
-    return (
-      <div className="linreg">
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">
             You just saw this as a table. Let's plot the exact same 10 listings on a graph, it makes the pattern far
@@ -384,14 +429,12 @@ function LinearRegression({ onStepsChange } = {}) {
             </div>
           )}
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'predict') {
+  } else if (stage === 'predict') {
     const answered = guessPick !== null
-    return (
-      <div className="linreg">
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">
             A new flat, {NEW_AREA} (hundred sq ft), is about to be listed. Going purely by the pattern in the chart,
@@ -431,13 +474,11 @@ function LinearRegression({ onStepsChange } = {}) {
           </ChartFrame>
           {answered && <div className="annotation">{GUESS_FEEDBACK[guessPick]}</div>}
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'trend') {
-    return (
-      <div className="linreg">
+  } else if (stage === 'trend') {
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">Can you draw a line that roughly follows the pattern of points?</p>
           <div className="field">
@@ -500,13 +541,11 @@ function LinearRegression({ onStepsChange } = {}) {
             for that point.
           </div>
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'concept') {
-    return (
-      <div className="linreg">
+  } else if (stage === 'concept') {
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">You just did the basic move behind a well known technique.</p>
           <p className="note">
@@ -549,18 +588,16 @@ function LinearRegression({ onStepsChange } = {}) {
             the line predicts for a given area x.
           </p>
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'math') {
+  } else if (stage === 'math') {
     const worked_x = X[4]
     const worked_y = Y[4]
     const worked_yhat = manualM * worked_x + manualB
     const worked_e = worked_y - worked_yhat
 
-    return (
-      <div className="linreg">
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">
             Let's put a number on how good your line actually is, using the exact line you just dragged.
@@ -609,11 +646,9 @@ function LinearRegression({ onStepsChange } = {}) {
             </p>
           </div>
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'playground') {
+  } else if (stage === 'playground') {
     const b1Curve = sampleB1Curve(manualB)
     const b0Curve = sampleB0Curve(manualM)
     const slopeB1 = slopeAt((b1) => mse(b1, manualB), manualM)
@@ -625,8 +660,8 @@ function LinearRegression({ onStepsChange } = {}) {
     else if (ratio <= 2) warmth = { label: 'Warmer', cls: '' }
     else warmth = { label: 'Cold', cls: 'fbBad' }
 
-    return (
-      <div className="linreg">
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">
             Your turn to play. Push the error as low as you possibly can by dragging both sliders. Watch the two
@@ -699,16 +734,14 @@ function LinearRegression({ onStepsChange } = {}) {
             Red means it still slopes, nudge the slider the way that sends the dot downhill.
           </p>
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'derive') {
+  } else if (stage === 'derive') {
     const step = DERIVATION_STEPS[deriveStep]
     const isLast = deriveStep === DERIVATION_STEPS.length - 1
 
-    return (
-      <div className="linreg">
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">Here's how the best b₀ and b₁ are actually worked out, step by step.</p>
           <div className="stepDots">
@@ -749,13 +782,11 @@ function LinearRegression({ onStepsChange } = {}) {
             {step.connect && <p className="connectNote">{step.connect}</p>}
           </div>
         </div>
-      </div>
+      </>
     )
-  }
-
-  if (stage === 'reveal') {
-    return (
-      <div className="linreg">
+  } else if (stage === 'reveal') {
+    content = (
+      <>
         <div className="linreg-controls">
           <p className="storyText">
             No trial and error, no guessing which direction to nudge the line. This formula jumps straight to the
@@ -784,94 +815,105 @@ function LinearRegression({ onStepsChange } = {}) {
             </p>
           </div>
         </div>
-      </div>
+      </>
+    )
+  } else {
+    // ---------- stage: bestfit (OLS computed on the real dataset) ----------
+    const olsMse = OLS_MSE
+    content = (
+      <>
+        <div className="linreg-controls">
+          <p className="storyText">Let's plug in the real numbers from all 10 listings.</p>
+          <div className="stageActions">
+            <button className="btnG" onClick={() => setStage('reveal')}>
+              Back
+            </button>
+          </div>
+        </div>
+        <div className="linreg-main">
+          <div className="formalBox">
+            <p className="formalLabel">Worked example</p>
+            <p className="formalTerm">Computing b₁ and b₀ from the data</p>
+            <p>
+              x̄ = {OLS.xbar.toFixed(2)}, ȳ = {OLS.ybar.toFixed(2)}
+            </p>
+            <p>
+              Σ(xᵢ − x̄)(yᵢ − ȳ) = {OLS.sxy.toFixed(2)}, &nbsp; Σ(xᵢ − x̄)² = {OLS.sxx.toFixed(2)}
+            </p>
+            <p>
+              b<sub>1</sub> = {OLS.sxy.toFixed(2)} / {OLS.sxx.toFixed(2)} = <b>{OLS.b1.toFixed(3)}</b>
+            </p>
+            <p>
+              b<sub>0</sub> = {OLS.ybar.toFixed(2)} − {OLS.b1.toFixed(3)} × {OLS.xbar.toFixed(2)} ={' '}
+              <b>{OLS.b0.toFixed(3)}</b>
+            </p>
+            <div className="eqBox">
+              ŷ = {OLS.b0.toFixed(2)} + {OLS.b1.toFixed(2)}x
+            </div>
+          </div>
+
+          <div className="chartRow">
+            <span className="chartTitle">Area vs. price, 10 sampled listings</span>
+            <div className="readouts">
+              <span>
+                Error (MSE) <b className="mseVal improving">{olsMse.toFixed(3)}</b>
+              </span>
+            </div>
+          </div>
+          <ChartFrame>
+            <Residuals m={OLS.b1} b={OLS.b0} />
+            <FitLine m={OLS.b1} b={OLS.b0} />
+            <Points />
+          </ChartFrame>
+          <div className="annotation fbGood">
+            <span className="tag">Best possible fit</span>
+            Remember your hand-fitted line from earlier? It had an MSE of {manualBest.toFixed(3)}. This
+            formula-computed line has an MSE of {olsMse.toFixed(3)}, the lowest MSE any straight line can achieve
+            for this data, worked out exactly rather than guessed.
+          </div>
+
+          <div className="reflectBox">
+            <p className="sectionLabel">Quick check-in</p>
+            <div className="choiceRow">
+              <button className="guessBtn" onClick={() => setReflectPick('good')}>
+                This is making sense
+              </button>
+              <button
+                className="guessBtn"
+                onClick={() => {
+                  setReflectPick('again')
+                  setDeriveStep(0)
+                  setStage('derive')
+                }}
+              >
+                Show the derivation again
+              </button>
+              <button className="guessBtn" onClick={() => setReflectPick('confused')}>
+                Still a bit confusing
+              </button>
+            </div>
+            {reflectPick === 'good' && <p className="note">Good. Try the quiz below whenever you are ready.</p>}
+            {reflectPick === 'confused' && (
+              <p className="note">
+                Go back through the derivation one step at a time. Each step only does one thing: step 1 writes down
+                what we're minimising, step 2 says a minimum has zero slope, steps 3 and 4 take that slope in each
+                direction, and step 5 just solves the two resulting equations.
+              </p>
+            )}
+          </div>
+        </div>
+      </>
     )
   }
 
-  // ---------- stage: bestfit (OLS computed on the real dataset) ----------
-  const olsMse = OLS_MSE
   return (
-    <div className="linreg">
-      <div className="linreg-controls">
-        <p className="storyText">Let's plug in the real numbers from all 10 listings.</p>
-        <div className="stageActions">
-          <button className="btnG" onClick={() => setStage('reveal')}>
-            Back
-          </button>
-        </div>
+    <>
+      <div className="linreg">
+        {content}
+        <StageNav stage={stage} furthestIdx={furthestIdx} onJump={setStage} />
       </div>
-      <div className="linreg-main">
-        <div className="formalBox">
-          <p className="formalLabel">Worked example</p>
-          <p className="formalTerm">Computing b₁ and b₀ from the data</p>
-          <p>
-            x̄ = {OLS.xbar.toFixed(2)}, ȳ = {OLS.ybar.toFixed(2)}
-          </p>
-          <p>
-            Σ(xᵢ − x̄)(yᵢ − ȳ) = {OLS.sxy.toFixed(2)}, &nbsp; Σ(xᵢ − x̄)² = {OLS.sxx.toFixed(2)}
-          </p>
-          <p>
-            b<sub>1</sub> = {OLS.sxy.toFixed(2)} / {OLS.sxx.toFixed(2)} = <b>{OLS.b1.toFixed(3)}</b>
-          </p>
-          <p>
-            b<sub>0</sub> = {OLS.ybar.toFixed(2)} − {OLS.b1.toFixed(3)} × {OLS.xbar.toFixed(2)} = <b>{OLS.b0.toFixed(3)}</b>
-          </p>
-          <div className="eqBox">
-            ŷ = {OLS.b0.toFixed(2)} + {OLS.b1.toFixed(2)}x
-          </div>
-        </div>
-
-        <div className="chartRow">
-          <span className="chartTitle">Area vs. price, 10 sampled listings</span>
-          <div className="readouts">
-            <span>
-              Error (MSE) <b className="mseVal improving">{olsMse.toFixed(3)}</b>
-            </span>
-          </div>
-        </div>
-        <ChartFrame>
-          <Residuals m={OLS.b1} b={OLS.b0} />
-          <FitLine m={OLS.b1} b={OLS.b0} />
-          <Points />
-        </ChartFrame>
-        <div className="annotation fbGood">
-          <span className="tag">Best possible fit</span>
-          Remember your hand-fitted line from earlier? It had an MSE of {manualBest.toFixed(3)}. This formula-computed
-          line has an MSE of {olsMse.toFixed(3)}, the lowest MSE any straight line can achieve for this data, worked
-          out exactly rather than guessed.
-        </div>
-
-        <div className="reflectBox">
-          <p className="sectionLabel">Quick check-in</p>
-          <div className="choiceRow">
-            <button className="guessBtn" onClick={() => setReflectPick('good')}>
-              This is making sense
-            </button>
-            <button
-              className="guessBtn"
-              onClick={() => {
-                setReflectPick('again')
-                setDeriveStep(0)
-                setStage('derive')
-              }}
-            >
-              Show the derivation again
-            </button>
-            <button className="guessBtn" onClick={() => setReflectPick('confused')}>
-              Still a bit confusing
-            </button>
-          </div>
-          {reflectPick === 'good' && <p className="note">Good. Try the quiz below whenever you are ready.</p>}
-          {reflectPick === 'confused' && (
-            <p className="note">
-              Go back through the derivation one step at a time. Each step only does one thing: step 1 writes down
-              what we're minimising, step 2 says a minimum has zero slope, steps 3 and 4 take that slope in each
-              direction, and step 5 just solves the two resulting equations.
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
+      <GoFurtherPanel topic="linreg" />
+    </>
   )
 }
 

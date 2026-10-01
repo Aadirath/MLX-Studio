@@ -38,6 +38,11 @@ function TopicOverviewPage() {
             Start learning
           </Link>
         </div>
+        {topicId === 'linear-regression' && (
+          <p className="sub" style={{ margin: '14px 0 0' }}>
+            Already know the basics? <Link className="sandboxLink" to="/linear-regression/sandbox">Try your own data</Link>
+          </p>
+        )}
       </div>
     </section>
   )

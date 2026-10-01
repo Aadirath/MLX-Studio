@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import GoFurtherPanel from './GoFurtherPanel.jsx'
 import './KMeans.css'
 
 const POINTS = [
@@ -157,7 +158,7 @@ function CentroidMarks({ centroids }) {
   ))
 }
 
-function KMeans({ onStepsChange } = {}) {
+function KMeansStages({ onStepsChange } = {}) {
   const [stage, setStage] = useState('table')
   const [k, setK] = useState(null)
   const [groupNote, setGroupNote] = useState(false)
@@ -553,6 +554,15 @@ function KMeans({ onStepsChange } = {}) {
         )}
       </div>
     </div>
+  )
+}
+
+function KMeans(props) {
+  return (
+    <>
+      <KMeansStages {...props} />
+      <GoFurtherPanel topic="kmeans" />
+    </>
   )
 }
 

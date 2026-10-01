@@ -1,0 +1,229 @@
+.lrsb {
+  --ink: #23262b;
+  --muted: #726c5d;
+  --line: #dcd5c0;
+  --paper: #f3efe4;
+  --paper-card: #fcfaf4;
+  --blue: #2f5d8a;
+  --blue-soft: #e4ecf3;
+  --rust: #a6462d;
+  --rust-soft: #f3e4df;
+  --good: #3f7d53;
+
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  border: 1px solid var(--line);
+  background: var(--paper-card);
+  color: var(--ink);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+@media (max-width: 800px) {
+  .lrsb {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lrsb button {
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.lrsb-input {
+  padding: 20px;
+  border-right: 1px solid var(--line);
+}
+
+@media (max-width: 800px) {
+  .lrsb-input {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
+.lrsb-main {
+  padding: 20px 22px;
+  min-width: 0;
+}
+
+.lrsb .modeRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.lrsb .modeRow button {
+  flex: 1;
+  padding: 7px 0;
+  font-size: 12.5px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.lrsb .modeRow button.active {
+  background: var(--blue-soft);
+  border-color: var(--blue);
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.lrsb .dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.lrsb .dataTable th {
+  text-align: left;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px;
+}
+
+.lrsb .dataTable td {
+  padding: 2px;
+}
+
+.lrsb .dataTable input {
+  width: 100%;
+  padding: 5px 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink);
+}
+
+.lrsb .dataTable input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.lrsb .rmBtn {
+  background: none;
+  border: none;
+  color: var(--rust);
+  font-size: 15px;
+  padding: 0 4px;
+}
+
+.lrsb .btnRow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.lrsb button.small {
+  font-size: 12px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.lrsb button.small:hover {
+  background: #efeadb;
+}
+
+.lrsb .fileDrop {
+  border: 1.5px dashed var(--line);
+  border-radius: 6px;
+  padding: 18px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.lrsb .fileDrop input {
+  margin-top: 8px;
+  max-width: 100%;
+}
+
+.lrsb .csvNote {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+
+.lrsb .computeBtn {
+  width: 100%;
+  padding: 10px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.lrsb .computeBtn:hover {
+  background: #274d73;
+}
+
+.lrsb .errBox {
+  background: var(--rust-soft);
+  border-left: 3px solid var(--rust);
+  padding: 10px 12px;
+  font-size: 12.5px;
+  margin-top: 10px;
+  border-radius: 2px;
+}
+
+.lrsb .chartRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.lrsb .chartTitle {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.lrsb .readouts {
+  display: flex;
+  gap: 16px;
+  font-size: 12.5px;
+}
+
+.lrsb .readouts b {
+  font-weight: 600;
+}
+
+.lrsb .mseVal {
+  color: var(--rust);
+}
+
+.lrsb svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.lrsb .axLbl {
+  font-size: 10.5px;
+  fill: var(--muted);
+  font-family: 'Inter', sans-serif;
+}
+
+.lrsb .resultBox {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--blue-soft);
+  border-left: 3px solid var(--blue);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.lrsb .placeholder {
+  color: var(--muted);
+  font-size: 13.5px;
+  padding: 60px 20px;
+  text-align: center;
+}

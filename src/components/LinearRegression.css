@@ -11,7 +11,7 @@
   --good: #3f7d53;
 
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 220px 1fr 200px;
   gap: 0;
   border: 1px solid var(--line);
   background: var(--paper-card);
@@ -411,4 +411,67 @@
   font-size: 12.5px !important;
   line-height: 1.5;
   font-style: italic;
+}
+
+.linreg-stagenav {
+  padding: 20px 16px;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .linreg-stagenav {
+    border-left: none;
+    border-top: 1px solid var(--line);
+  }
+}
+
+.linreg .stageNavTitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0;
+}
+
+.linreg .stageList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.linreg .stageNavItem {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 7px 8px;
+}
+
+.linreg .stageNavItem:hover:not(:disabled) {
+  background: #efeadb;
+  color: var(--ink);
+}
+
+.linreg .stageNavItem.active {
+  background: var(--blue-soft);
+  border-color: var(--blue) !important;
+  color: var(--blue);
+  font-weight: 600;
+}
+
+.linreg .stageNavItem.locked {
+  color: #b7b09c;
+}
+
+.linreg .stageNavItem:disabled {
+  cursor: not-allowed;
 }

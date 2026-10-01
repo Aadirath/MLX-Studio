@@ -460,3 +460,7 @@
   font-size: 14.5px;
   margin: 6px 0;
 }
+
+.paper .sandboxLink {
+  color: var(--blue);
+}
