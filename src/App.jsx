@@ -5,6 +5,7 @@ import About from './pages/About.jsx'
 import LinearRegressionPage from './pages/LinearRegressionPage.jsx'
 import LinearRegressionSandboxPage from './pages/LinearRegressionSandboxPage.jsx'
 import KMeansPage from './pages/KMeansPage.jsx'
+import GradientDescentPage from './pages/GradientDescentPage.jsx'
 import TopicOverviewPage from './pages/TopicOverviewPage.jsx'
 import QuizPage from './pages/QuizPage.jsx'
 import SummaryPage from './pages/SummaryPage.jsx'
@@ -22,6 +23,7 @@ function App() {
         <Route path="linear-regression" element={<LinearRegressionPage />} />
         <Route path="linear-regression/sandbox" element={<LinearRegressionSandboxPage />} />
         <Route path="k-means"element={<KMeansPage />} />
+        <Route path="gradient-descent" element={<GradientDescentPage />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

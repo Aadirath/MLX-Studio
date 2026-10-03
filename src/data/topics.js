@@ -23,6 +23,18 @@ export const TOPICS = {
     prereqs: ['Basic coordinate geometry'],
     time: '~15 min',
   },
+  'gradient-descent': {
+    name: 'Gradient descent',
+    ico: '⛰️',
+    blurb: 'Start anywhere and roll downhill to the lowest error.',
+    objectives: [
+      'Explain what the error surface shows',
+      'Predict which way a step will move the line',
+      'Recognise when descent has reached the bottom',
+    ],
+    prereqs: ['Linear regression basics'],
+    time: '~10 min',
+  },
 }
 
 export const QUIZ = {
@@ -183,4 +195,5 @@ export const QUIZ = {
 export const TOPIC_PLAYGROUND_PATHS = {
   'linear-regression': '/linear-regression',
   'k-means': '/k-means',
+  'gradient-descent': '/gradient-descent',
 }
