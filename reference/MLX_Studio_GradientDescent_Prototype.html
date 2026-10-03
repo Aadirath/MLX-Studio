@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLX Studio — Gradient Descent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F3EFE4; --ink:#23262B; --muted:#726C5D;
+    --line:#DCD5C0; --blue:#2F5D8A; --blue-soft:#E4ECF3; --rust:#A6462D; --rust-soft:#F3E4DF; --good:#3F7D53;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ font-family:'Inter',system-ui,sans-serif; color:var(--ink); background-color:var(--paper);
+    background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:28px 28px; padding:32px 20px 60px; min-height:100vh; }
+  .wrap{ max-width:1080px; margin:0 auto; }
+  header{ margin-bottom:22px; }
+  h1{ font-family:'Lora',serif; font-weight:600; font-size:28px; margin:0 0 8px; }
+  header p{ margin:0; color:var(--muted); font-size:14.5px; max-width:68ch; line-height:1.5; }
+  .board{ background:#FCFAF4; border:1px solid var(--line); box-shadow:0 1px 0 var(--line); }
+  .layout{ display:grid; grid-template-columns:200px 1fr 260px; gap:0; }
+  @media (max-width:900px){ .layout{ grid-template-columns:1fr; } }
+  .controls{ padding:20px 16px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:10px; }
+  .btnCol{ display:flex; flex-direction:column; gap:8px; }
+  .btnCol button{ font-size:13px; padding:8px 12px; border:1px solid transparent; border-radius:5px; cursor:pointer; font-family:'Inter',sans-serif; }
+  .btnP{ background:var(--blue); color:#fff; border-color:var(--blue); }
+  .btnP:hover{ background:#274d73; }
+  .btnP:disabled{ background:#A9B9C7; border-color:#A9B9C7; cursor:not-allowed; }
+  .btnG{ background:transparent; color:var(--ink); border-color:var(--line); }
+  .btnG:hover{ background:#EFEADB; }
+  .note{ font-size:11.5px; color:var(--muted); line-height:1.5; margin:0; }
+  .legend{ margin-top:4px; }
+  .legendBar{ height:10px; border-radius:3px; background:linear-gradient(90deg, #F3EFE4, #2F5D8A); margin-bottom:4px; }
+  .legendLabels{ display:flex; justify-content:space-between; font-size:10px; color:var(--muted); }
+
+  .main{ padding:20px 22px; }
+  .chartRow{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
+  .chartTitle{ font-size:12.5px; color:var(--muted); }
+  .readouts{ display:flex; gap:16px; font-size:12.5px; }
+  .readouts b{ font-weight:600; }
+  svg{ width:100%; height:auto; display:block; }
+  .axLbl{ font-size:10.5px; fill:var(--muted); font-family:'Inter',sans-serif; }
+  .annotation{ margin-top:14px; padding:12px 14px; background:var(--blue-soft); border-left:3px solid var(--blue); font-size:13px; line-height:1.55; min-height:18px; }
+  .annotation .tag{ display:inline-block; font-size:11px; font-weight:600; margin-right:7px; color:var(--blue); }
+
+  .sidePanel{ padding:20px 18px; border-left:1px solid var(--line); }
+  .sidePanel h3{ font-size:11px; text-transform:uppercase; letter-spacing:0.05em; color:var(--muted); margin:0 0 10px; }
+  footer.note{ margin-top:16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Gradient descent — finding the bottom of the bowl</h1>
+    <p>Linear Regression's guided lesson jumps straight to the exact formula (OLS). This is the other way to solve the same problem: start anywhere, and repeatedly nudge downhill until you reach the lowest error. The surface below plots every possible slope and intercept against how wrong that line would be.</p>
+  </header>
+
+  <div class="board">
+    <div class="layout">
+      <div class="controls">
+        <div class="btnCol">
+          <button class="btnP" id="stepBtn">Step forward</button>
+          <button class="btnG" id="runBtn">Run to convergence</button>
+          <button class="btnG" id="resetBtn">Reset to step 0</button>
+        </div>
+        <p class="note">Each step moves in the steepest downhill direction on this surface, the same idea as rolling a ball down a hill.</p>
+        <div class="legend">
+          <div class="note" style="margin-bottom:6px;">Error (darker = worse)</div>
+          <div class="legendBar"></div>
+          <div class="legendLabels"><span>Low</span><span>High</span></div>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="chartRow">
+          <span class="chartTitle">Error surface: every possible slope × intercept</span>
+          <div class="readouts" id="readouts"></div>
+        </div>
+        <svg viewBox="0 0 560 400" id="chart" role="img" aria-label="Heatmap of error across slope and intercept values, with the gradient descent path overlaid"></svg>
+        <div class="annotation" id="annotation">Press "Step forward" to begin. The starting point is deliberately far from the minimum.</div>
+      </div>
+
+      <div class="sidePanel">
+        <h3>What this line looks like</h3>
+        <svg viewBox="0 0 220 180" id="miniChart" role="img" aria-label="The current line plotted against the housing data"></svg>
+        <p class="note" id="miniCaption" style="margin-top:8px;"></p>
+      </div>
+    </div>
+  </div>
+  <footer class="note">Same dataset as the Linear Regression lesson: area (100 sq ft) vs. price (₹ lakh), 10 listings. The star marks the exact answer OLS computes directly.</footer>
+</div>
+
+<script>
+(function(){
+  const X = [1,2,3,4,5,6,6.5,7,8,9];
+  const Y = [2.1,2.9,4.2,4.8,6.1,6.9,7.3,7.8,8.6,9.4];
+  const N = X.length;
+  const meanX = X.reduce((a,b)=>a+b,0)/N, meanY = Y.reduce((a,b)=>a+b,0)/N;
+  const stdX = Math.sqrt(X.reduce((s,x)=>s+(x-meanX)**2,0)/N), stdY = Math.sqrt(Y.reduce((s,y)=>s+(y-meanY)**2,0)/N);
+  const Xn = X.map(x=>(x-meanX)/stdX), Yn = Y.map(y=>(y-meanY)/stdY);
+
+  const B1_MIN=-0.5, B1_MAX=3, B0_MIN=-2, B0_MAX=8; // matches Umang's existing slider ranges
+  const START_B1=-0.3, START_B0=6.5, MAX_STEPS=10, LR=0.3;
+
+  function mseReal(b1,b0){ let s=0; for(let i=0;i<N;i++){ const e=b1*X[i]+b0-Y[i]; s+=e*e; } return s/N; }
+  function realFromNorm(mn,bn){ const b1=mn*stdY/stdX; const b0=meanY-b1*meanX+bn*stdY; return [b1,b0]; }
+  function normFromReal(b1,b0){ const mn=b1*stdX/stdY; const bn=(b0-meanY+b1*meanX)/stdY; return [mn,bn]; }
+  function gradNorm(mn,bn){ let dm=0,db=0; for(let i=0;i<N;i++){ const p=mn*Xn[i]+bn, e=p-Yn[i]; dm+=e*Xn[i]; db+=e; } return [2*dm/N, 2*db/N]; }
+
+  // OLS optimum, for the star marker
+  const sxy = X.reduce((s,x,i)=>s+(x-meanX)*(Y[i]-meanY),0);
+  const sxx = X.reduce((s,x)=>s+(x-meanX)**2,0);
+  const OLS_B1 = sxy/sxx, OLS_B0 = meanY - OLS_B1*meanX;
+
+  const padL=50, padR=20, padT=14, padB=36, W=560, H=400;
+  const plotW=W-padL-padR, plotH=H-padT-padB;
+  function px(b1){ return padL + (b1-B1_MIN)/(B1_MAX-B1_MIN)*plotW; }
+  function py(b0){ return padT + plotH - (b0-B0_MIN)/(B0_MAX-B0_MIN)*plotH; }
+
+  const svg = document.getElementById('chart');
+  const mini = document.getElementById('miniChart');
+  const miniCaption = document.getElementById('miniCaption');
+  const stepBtn = document.getElementById('stepBtn');
+  const runBtn = document.getElementById('runBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const annotation = document.getElementById('annotation');
+  const readouts = document.getElementById('readouts');
+
+  // Precompute the heatmap grid once.
+  const GRID_X=44, GRID_Y=32;
+  const cellW = plotW/GRID_X, cellH = plotH/GRID_Y;
+  let gridCells = '';
+  for(let i=0;i<GRID_X;i++){
+    const b1 = B1_MIN + (i+0.5)*(B1_MAX-B1_MIN)/GRID_X;
+    for(let j=0;j<GRID_Y;j++){
+      const b0 = B0_MIN + (j+0.5)*(B0_MAX-B0_MIN)/GRID_Y;
+      const m = mseReal(b1,b0);
+      const t = Math.min(1, Math.sqrt(m)/6); // clamp so the far corners don't wash out the bowl's detail
+      const col = lerpColor(t);
+      const x = padL + i*cellW, y = padT + plotH - (j+1)*cellH;
+      gridCells += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(cellW+0.6).toFixed(1)}" height="${(cellH+0.6).toFixed(1)}" fill="${col}"/>`;
+    }
+  }
+  function lerpColor(t){
+    // paper (#F3EFE4) -> blue (#2F5D8A)
+    const a=[0xF3,0xEF,0xE4], b=[0x2F,0x5D,0x8A];
+    const c = a.map((av,i)=>Math.round(av+(b[i]-av)*t));
+    return `rgb(${c[0]},${c[1]},${c[2]})`;
+  }
+
+  let state = { mn:null, bn:null, step:0, path:[], running:false };
+
+  function initState(){
+    const [mn,bn] = normFromReal(START_B1, START_B0);
+    state = { mn, bn, step:0, path:[[START_B1,START_B0]], running:false };
+  }
+
+  function drawMain(){
+    const [b1,b0] = realFromNorm(state.mn, state.bn);
+    const m = mseReal(b1,b0);
+    let s = gridCells;
+    // axes
+    s += `<line x1="${px(B1_MIN)}" y1="${py(B0_MIN)}" x2="${px(B1_MAX)}" y2="${py(B0_MIN)}" stroke="var(--ink)" stroke-width="1" opacity="0.4"/>`;
+    s += `<line x1="${px(B1_MIN)}" y1="${py(B0_MIN)}" x2="${px(B1_MIN)}" y2="${py(B0_MAX)}" stroke="var(--ink)" stroke-width="1" opacity="0.4"/>`;
+    s += `<text class="axLbl" x="${padL+plotW/2}" y="396" text-anchor="middle">Slope (b₁)</text>`;
+    s += `<text class="axLbl" x="16" y="${padT+plotH/2}" text-anchor="middle" transform="rotate(-90 16 ${padT+plotH/2})">Intercept (b₀)</text>`;
+    // path
+    if(state.path.length>1){
+      const pts = state.path.map(([pb1,pb0])=>`${px(pb1).toFixed(1)},${py(pb0).toFixed(1)}`).join(' ');
+      s += `<polyline points="${pts}" fill="none" stroke="var(--rust)" stroke-width="2"/>`;
+      state.path.forEach(([pb1,pb0])=>{ s += `<circle cx="${px(pb1).toFixed(1)}" cy="${py(pb0).toFixed(1)}" r="3" fill="var(--rust)"/>`; });
+    }
+    // start marker
+    s += `<circle cx="${px(START_B1)}" cy="${py(START_B0)}" r="5" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
+    // OLS optimum, a star
+    s += starMarker(px(OLS_B1), py(OLS_B0));
+    // current point
+    s += `<circle cx="${px(b1).toFixed(1)}" cy="${py(b0).toFixed(1)}" r="6" fill="var(--blue)" stroke="#fff" stroke-width="1.5"/>`;
+    svg.innerHTML = s;
+    readouts.innerHTML = `<span>Step <b>${state.step}</b></span><span>Error (MSE) <b style="color:var(--rust)">${m.toFixed(3)}</b></span>`;
+    drawMini(b1,b0);
+  }
+  function starMarker(cx,cy){
+    const r1=7,r2=3; let pts=[];
+    for(let i=0;i<10;i++){ const r=i%2===0?r1:r2; const a=Math.PI/2 + i*Math.PI/5; pts.push(`${(cx+r*Math.cos(a)).toFixed(1)},${(cy-r*Math.sin(a)).toFixed(1)}`); }
+    return `<polygon points="${pts.join(' ')}" fill="#D9B44A" stroke="var(--ink)" stroke-width="0.5"/>`;
+  }
+  function drawMini(b1,b0){
+    const padL=24,padR=10,padT=10,padB=22,W=220,H=180;
+    const pw=W-padL-padR, ph=H-padT-padB;
+    const mpx = x => padL + x/10*pw, mpy = y => padT + ph - y/11*ph;
+    let s = `<line x1="${mpx(0)}" y1="${mpy(0)}" x2="${mpx(0)}" y2="${mpy(11)}" stroke="#C9C1A8"/>`;
+    s += `<line x1="${mpx(0)}" y1="${mpy(0)}" x2="${mpx(10)}" y2="${mpy(0)}" stroke="#C9C1A8"/>`;
+    for(let i=0;i<N;i++){ s += `<circle cx="${mpx(X[i])}" cy="${mpy(Y[i])}" r="3" fill="var(--ink)"/>`; }
+    s += `<line x1="${mpx(0)}" y1="${mpy(b0)}" x2="${mpx(10)}" y2="${mpy(b1*10+b0)}" stroke="var(--blue)" stroke-width="2"/>`;
+    mini.innerHTML = s;
+    miniCaption.textContent = `ŷ = ${b0.toFixed(2)} + ${b1.toFixed(2)}x`;
+  }
+  function setAnn(html){ annotation.innerHTML = html; }
+
+  function doStep(){
+    const [prevB1, prevB0] = realFromNorm(state.mn, state.bn);
+    const prevMse = mseReal(prevB1, prevB0);
+    const [dm, db] = gradNorm(state.mn, state.bn);
+    state.mn -= LR*dm; state.bn -= LR*db;
+    state.step++;
+    const [newB1, newB0] = realFromNorm(state.mn, state.bn);
+    state.path.push([newB1, newB0]);
+    const newMse = mseReal(newB1, newB0);
+    drawMain();
+    const dirB1 = newB1 > prevB1 ? 'increased' : 'decreased';
+    setAnn(`<span class="tag">Step ${state.step}</span>Moved to the steepest downhill direction from here. Slope ${dirB1} to ${newB1.toFixed(2)}, intercept to ${newB0.toFixed(2)}. Error fell from ${prevMse.toFixed(3)} to ${newMse.toFixed(3)}.`);
+    if(state.step >= MAX_STEPS || Math.abs(newMse-prevMse) < 0.0005){
+      stepBtn.disabled = true; runBtn.disabled = true;
+      setAnn(annotation.innerHTML + ' This has reached the bottom of the bowl, the same answer OLS computes directly in one step.');
+      return true;
+    }
+    return false;
+  }
+
+  stepBtn.addEventListener('click', ()=>doStep());
+  runBtn.addEventListener('click', ()=>{
+    stepBtn.disabled = true; runBtn.textContent = 'Running…';
+    const tick = ()=>{ const done = doStep(); if(!done){ setTimeout(tick, 650); } else { runBtn.textContent = 'Run to convergence'; } };
+    tick();
+  });
+  resetBtn.addEventListener('click', ()=>{
+    initState();
+    stepBtn.disabled=false; runBtn.disabled=false; runBtn.textContent='Run to convergence';
+    drawMain();
+    setAnn('Press "Step forward" to begin. The starting point is deliberately far from the minimum.');
+  });
+
+  initState();
+  drawMain();
+})();
+</script>
+</body>
+</html>
