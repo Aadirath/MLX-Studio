@@ -158,7 +158,7 @@ function CentroidMarks({ centroids }) {
   ))
 }
 
-function KMeansStages({ onStepsChange } = {}) {
+function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   const [stage, setStage] = useState('table')
   const [k, setK] = useState(null)
   const [groupNote, setGroupNote] = useState(false)
@@ -182,6 +182,12 @@ function KMeansStages({ onStepsChange } = {}) {
   useEffect(() => {
     onStepsChange?.(sim.iter)
   }, [sim.iter, onStepsChange])
+
+  useEffect(() => {
+    onStateDescription?.(
+      `Stage "${stage}". Chosen k: ${k ?? 'not chosen yet'}. Iteration ${sim.iter}. ${running ? 'Auto-running.' : 'Paused.'}`,
+    )
+  }, [stage, k, sim.iter, running, onStateDescription])
 
   function pickK(chosenK) {
     setK(chosenK)

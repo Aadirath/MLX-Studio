@@ -181,12 +181,18 @@ function MiniFit({ b1, b0 }) {
   )
 }
 
-function GradientDescent() {
+function GradientDescent({ onStateDescription } = {}) {
   const [state, setState] = useState(initState)
   const [running, setRunning] = useState(false)
 
   const [b1, b0] = useMemo(() => realFromNorm(state.mn, state.bn), [state.mn, state.bn])
   const m = mseReal(b1, b0)
+
+  useEffect(() => {
+    onStateDescription?.(
+      `Step ${state.step}. Slope ${b1.toFixed(2)}, intercept ${b0.toFixed(2)}, error ${m.toFixed(3)}. ${state.done ? 'Converged at the bottom of the bowl.' : 'Not yet converged.'}`,
+    )
+  }, [state.step, state.done, b1, b0, m, onStateDescription])
 
   useEffect(() => {
     if (!running) return undefined

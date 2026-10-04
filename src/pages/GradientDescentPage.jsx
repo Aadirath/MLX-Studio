@@ -1,7 +1,10 @@
+import { useState } from 'react'
+import AIAssistantPanel from '../components/AIAssistantPanel.jsx'
 import GradientDescent from '../components/GradientDescent.jsx'
 import '../styles/paper.css'
 
 function GradientDescentPage() {
+  const [stateDescription, setStateDescription] = useState('')
   return (
     <section className="paper">
       <h1>Gradient descent — finding the bottom of the bowl</h1>
@@ -10,7 +13,8 @@ function GradientDescentPage() {
         the same problem: start anywhere, and repeatedly nudge downhill until you reach the lowest error. The surface
         below plots every possible slope and intercept against how wrong that line would be.
       </p>
-      <GradientDescent />
+      <GradientDescent onStateDescription={setStateDescription} />
+      <AIAssistantPanel topic="gradient-descent" stateDescription={stateDescription} />
       <p className="sub" style={{ margin: '16px 0 0', fontSize: '12px' }}>
         Same dataset as the Linear Regression lesson: area (100 sq ft) vs. price (₹ lakh), 10 listings. The star marks
         the exact answer OLS computes directly.

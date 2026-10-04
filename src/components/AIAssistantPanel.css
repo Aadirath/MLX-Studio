@@ -1,0 +1,66 @@
+.aiPanel {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: var(--paper-card);
+}
+
+.aiTitle {
+  font-family: 'Lora', serif;
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.aiForm {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.aiInput {
+  flex: 1;
+  font-family: inherit;
+  font-size: 13.5px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 5px;
+  resize: vertical;
+}
+
+.aiInput:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
+.aiAsk:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.aiReply:empty {
+  display: none;
+}
+
+.aiReply p {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.aiLoading {
+  color: var(--muted);
+}
+
+.aiError {
+  color: var(--rust);
+  font-size: 12.5px;
+}
+
+.aiText {
+  padding: 10px 12px;
+  background: var(--blue-soft);
+  border-left: 3px solid var(--blue);
+}

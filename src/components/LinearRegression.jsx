@@ -274,7 +274,7 @@ function StageNav({ stage, furthestIdx, onJump }) {
   )
 }
 
-function LinearRegression({ onStepsChange } = {}) {
+function LinearRegression({ onStepsChange, onStateDescription } = {}) {
   const [stage, setStage] = useState('context')
   const [furthestIdx, setFurthestIdx] = useState(0)
 
@@ -303,6 +303,12 @@ function LinearRegression({ onStepsChange } = {}) {
   useEffect(() => {
     if (manualMse < manualBest) setManualBest(manualMse)
   }, [manualMse, manualBest])
+
+  useEffect(() => {
+    onStateDescription?.(
+      `Stage "${stage}". Manual line slope ${manualM.toFixed(2)}, intercept ${manualB.toFixed(2)}, current error (MSE) ${manualMse.toFixed(2)}. Derivation step ${deriveStep}.`,
+    )
+  }, [stage, manualM, manualB, manualMse, deriveStep, onStateDescription])
 
   function goToStage(next) {
     setStepsSeen((s) => s + 1)
