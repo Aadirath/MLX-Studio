@@ -38,7 +38,7 @@ Rules, these are not optional:
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: 'user', parts: [{ text: safeQuestion }] }],
-          generationConfig: {` ` maxOutputTokens: 400,` ` thinkingConfig: { thinkingBudget: 0 },` `},
+          generationConfig: { maxOutputTokens: 400, thinkingConfig: { thinkingBudget: 0 } },
         }),
       }
     );
