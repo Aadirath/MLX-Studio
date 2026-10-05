@@ -8,18 +8,26 @@ function TeacherPlaybackControls({
   onNext,
   onTogglePlay,
   onSpeedChange,
+  nextLabel = 'Next Iteration',
+  prevLabel = 'Prev',
+  onStep,
+  canStep = false,
+  stepLabel = 'Fine Step',
+  isPresentationMode = false,
+  statusPill = null,
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 10 }}>
-      {/* Clear simple primary controls: [ Reset ] [ ◀ Step ] [ ▶ Play / ❚❚ Pause ] [ Step ▶ ] */}
+    <div className={`tw-pb-bar ${isPresentationMode ? 'presentation' : ''}`}>
+      {/* Primary Playback Buttons (Big, high-contrast, projector-ready) */}
       <div className="tw-pb-buttons">
         <button
           type="button"
-          className="tw-pb-btn"
+          className="tw-pb-btn tw-pb-btn-reset"
           onClick={onReset}
-          title="Reset to initial state"
+          title="Reset simulation to initial state (Shortcut: R)"
         >
-          <span>⟲</span> Reset
+          <span className="tw-pb-ico">⟲</span>
+          <span>Reset</span>
         </button>
 
         {canPrev !== false && (
@@ -28,54 +36,80 @@ function TeacherPlaybackControls({
             className="tw-pb-btn"
             onClick={onPrev}
             disabled={!canPrev || isPlaying}
-            title="Step backward"
+            title="Step back one iteration (Shortcut: ←)"
           >
-            <span>◀</span> Step
+            <span className="tw-pb-ico">⏮</span>
+            <span>{prevLabel}</span>
           </button>
         )}
 
         <button
           type="button"
-          className="tw-pb-btn primary"
+          className="tw-pb-btn tw-pb-btn-play primary"
           onClick={onTogglePlay}
-          title={isPlaying ? 'Pause simulation' : 'Play simulation'}
+          title={isPlaying ? 'Pause simulation (Shortcut: Space)' : 'Play simulation automatically (Shortcut: Space)'}
         >
           {isPlaying ? (
             <>
-              <span>❚❚</span> Pause
+              <span className="tw-pb-ico">❚❚</span>
+              <span>Pause</span>
             </>
           ) : (
             <>
-              <span>▶</span> Play
+              <span className="tw-pb-ico">▶</span>
+              <span>Play</span>
             </>
           )}
         </button>
 
         <button
           type="button"
-          className="tw-pb-btn"
+          className="tw-pb-btn tw-pb-btn-next"
           onClick={onNext}
           disabled={!canNext || isPlaying}
-          title="Step forward"
+          title="Advance one full iteration (Shortcut: →)"
         >
-          Step <span>▶</span>
+          <span>{nextLabel}</span>
+          <span className="tw-pb-ico">⏭</span>
         </button>
-      </div>
 
-      {/* Animation Speed Selector */}
-      <div className="tw-speed-selector">
-        <span style={{ fontSize: '11px', color: 'var(--muted)', marginRight: 4 }}>Speed:</span>
-        {[0.5, 1, 2].map((s) => (
+        {/* Optional fine-grain step button if teacher wants to dissect an internal step */}
+        {canStep && onStep && (
           <button
             type="button"
-            key={s}
-            className={`tw-btn-chip ${speed === s ? 'active' : ''}`}
-            onClick={() => onSpeedChange?.(s)}
-            style={{ padding: '2px 8px', fontSize: '11px' }}
+            className="tw-pb-btn tw-pb-btn-substep"
+            onClick={onStep}
+            disabled={isPlaying}
+            title="Step into individual sub-step"
           >
-            {s}x
+            <span>{stepLabel}</span>
+            <span className="tw-pb-ico">❯</span>
           </button>
-        ))}
+        )}
+      </div>
+
+      {/* Center status pill (visible especially in presentation mode) */}
+      {statusPill && <div className="tw-pb-status-pill">{statusPill}</div>}
+
+      {/* Right Controls: Speed & Shortcut Helper */}
+      <div className="tw-pb-right">
+        <div className="tw-speed-selector">
+          <span className="tw-pb-meta-label">Speed:</span>
+          {[0.5, 1, 2].map((s) => (
+            <button
+              type="button"
+              key={s}
+              className={`tw-btn-chip ${speed === s ? 'active' : ''}`}
+              onClick={() => onSpeedChange?.(s)}
+            >
+              {s}x
+            </button>
+          ))}
+        </div>
+
+        <div className="tw-keyboard-hint" title="Keyboard shortcuts for presentation">
+          <code>Space</code> Play · <code>→</code> Next · <code>R</code> Reset
+        </div>
       </div>
     </div>
   )

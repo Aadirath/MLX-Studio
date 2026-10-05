@@ -3,6 +3,10 @@ import TeacherWorkspaceLayout from './TeacherWorkspaceLayout.jsx'
 import TeacherDatasetSelector from './TeacherDatasetSelector.jsx'
 import TeacherPlaybackControls from './TeacherPlaybackControls.jsx'
 import TeacherExplanationPanel from './TeacherExplanationPanel.jsx'
+import TeacherCodeEditor from './TeacherCodeEditor.jsx'
+import TeacherConceptWhiteboard from './TeacherConceptWhiteboard.jsx'
+import { explainKMeansPoint, explainKMeansTwoPoints, explainKMeansCentroid } from './teacherConceptExplainer.jsx'
+import { KM_CODE, KM_CODE_MAPPINGS } from './teacherAlgorithmCode.js'
 import './TeacherKMeans.css'
 
 const CLUSTER_COLORS = [
@@ -217,6 +221,10 @@ function TeacherKMeans() {
   const [k, setK] = useState(activeData.defaultK)
   const [initStrategy, setInitStrategy] = useState('spread')
 
+  // Teaching Mode & Split Focus (Default: Visual mode)
+  const [teachingMode, setTeachingMode] = useState('visual')
+  const [focusMode, setFocusMode] = useState('balanced')
+
   // Simulation State
   const [stepIndex, setStepIndex] = useState(0)
   const [centroids, setCentroids] = useState(() =>
@@ -227,9 +235,15 @@ function TeacherKMeans() {
   const [iteration, setIteration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
+  const [snapshot, setSnapshot] = useState(null) // Baseline snapshot comparison
+
+  // Concept-First Interactive Whiteboard States
+  const [selectedPointIndex, setSelectedPointIndex] = useState(null)
+  const [selectedPointBIndex, setSelectedPointBIndex] = useState(null)
+  const [selectedCentroidIndex, setSelectedCentroidIndex] = useState(null)
 
   // Auxiliary toggles
-  const [showDistanceLines, setShowDistanceLines] = useState(true)
+  const [showDistanceLines, setShowDistanceLines] = useState(false)
   const [showCentroidTrails, setShowCentroidTrails] = useState(true)
 
   // Pure Assignment logic
@@ -269,9 +283,78 @@ function TeacherKMeans() {
       setStepIndex(0)
       setIteration(0)
       setIsPlaying(false)
+      setSelectedPointIndex(null)
+      setSelectedPointBIndex(null)
+      setSelectedCentroidIndex(null)
     },
     [k, initStrategy, activeData.points, bounds],
   )
+
+  // Compute selected whiteboard explanation object
+  const whiteboardObject = useMemo(() => {
+    if (selectedPointIndex !== null && selectedPointBIndex !== null) {
+      const ptA = activeData.points[selectedPointIndex]
+      const ptB = activeData.points[selectedPointBIndex]
+      if (ptA && ptB) {
+        return explainKMeansTwoPoints(ptA, ptB, selectedPointIndex, selectedPointBIndex, activeData.col1, activeData.col2)
+      }
+    }
+    if (selectedPointIndex !== null) {
+      const pt = activeData.points[selectedPointIndex]
+      if (pt) {
+        return explainKMeansPoint(pt, selectedPointIndex, centroids, assignments, activeData.col1, activeData.col2)
+      }
+    }
+    if (selectedCentroidIndex !== null) {
+      const c = centroids[selectedCentroidIndex]
+      if (c) {
+        return explainKMeansCentroid(c, selectedCentroidIndex, activeData.points, assignments, activeData.col1, activeData.col2)
+      }
+    }
+    return null
+  }, [selectedPointIndex, selectedPointBIndex, selectedCentroidIndex, activeData, centroids, assignments])
+
+  const handlePointClick = (idx) => {
+    setSelectedCentroidIndex(null)
+    if (selectedPointIndex === null) {
+      setSelectedPointIndex(idx)
+      setSelectedPointBIndex(null)
+    } else if (selectedPointIndex === idx) {
+      setSelectedPointIndex(null)
+      setSelectedPointBIndex(null)
+    } else if (selectedPointBIndex === null) {
+      setSelectedPointBIndex(idx)
+    } else if (selectedPointBIndex === idx) {
+      setSelectedPointBIndex(null)
+    } else {
+      setSelectedPointIndex(idx)
+      setSelectedPointBIndex(null)
+    }
+  }
+
+  const handleCentroidClick = (cIdx) => {
+    setSelectedPointIndex(null)
+    setSelectedPointBIndex(null)
+    setSelectedCentroidIndex((prev) => (prev === cIdx ? null : cIdx))
+  }
+
+  const handleClearSelection = () => {
+    setSelectedPointIndex(null)
+    setSelectedPointBIndex(null)
+    setSelectedCentroidIndex(null)
+  }
+
+  const handleQuickInspectPoint = () => {
+    setSelectedCentroidIndex(null)
+    setSelectedPointBIndex(null)
+    setSelectedPointIndex(0)
+  }
+
+  const handleQuickInspectCentroid = () => {
+    setSelectedPointIndex(null)
+    setSelectedPointBIndex(null)
+    setSelectedCentroidIndex(0)
+  }
 
   // Changing K immediately resets and updates visualization
   const handleKChange = (newK) => {
@@ -311,6 +394,46 @@ function TeacherKMeans() {
     })
     return total
   }, [activeData.points, assignments, centroids, stepIndex])
+
+  // Synchronized Code Mappings & Live Variables
+  const activeMapping = KM_CODE_MAPPINGS[stepIndex] || KM_CODE_MAPPINGS[0]
+
+  const kmLiveVariables = useMemo(() => {
+    const pts = activeData.points
+    const counts = Array.from({ length: k }, (_, cIdx) => assignments.filter((a) => a === cIdx).length)
+    let maxShift = 0
+    if (centroidHistory.length >= 2) {
+      const prev = centroidHistory[centroidHistory.length - 2]
+      const cur = centroidHistory[centroidHistory.length - 1]
+      maxShift = Math.max(...cur.map((c, i) => (prev[i] ? dist(c, prev[i]) : 0)))
+    }
+
+    return [
+      { name: 'N', value: `${pts.length} pts`, highlight: stepIndex === 0 },
+      { name: 'K', value: k, highlight: stepIndex === 1 },
+      {
+        name: 'centroids',
+        value: centroids.slice(0, 3).map((c, i) => `C${i + 1}[${c[0].toFixed(1)},${c[1].toFixed(1)}]`).join(' '),
+        highlight: stepIndex === 2 || stepIndex === 4,
+      },
+      {
+        name: 'cluster_sizes',
+        value: stepIndex >= 3 ? `[${counts.join(', ')}]` : 'unassigned',
+        highlight: stepIndex === 3,
+      },
+      {
+        name: 'inertia (WCSS)',
+        value: currentWCSS > 0 ? currentWCSS.toFixed(1) : '—',
+        highlight: stepIndex === 6 || stepIndex === 7,
+      },
+      {
+        name: 'shift',
+        value: maxShift > 0 ? maxShift.toFixed(2) : stepIndex >= 4 ? '0.00' : '—',
+        highlight: stepIndex === 5,
+      },
+      { name: 'iter', value: iteration },
+    ]
+  }, [activeData.points, k, assignments, centroidHistory, centroids, currentWCSS, stepIndex, iteration])
 
   // Step transitions
   const handleJumpStep = useCallback(
@@ -376,6 +499,67 @@ function TeacherKMeans() {
     [activeData.points, k, initStrategy, bounds, computeAssignment, computeMeans],
   )
 
+  // Iteration-Level Playback (Projector-first classroom unit)
+  const handleNextIteration = useCallback(() => {
+    if (stepIndex < 2) {
+      handleJumpStep(2)
+      return
+    }
+    const curA = computeAssignment(activeData.points, centroids)
+    const nextC = computeMeans(activeData.points, curA, k, centroids)
+    const totalMoved = nextC.reduce((s, nc, i) => s + dist(nc, centroids[i]), 0)
+    setCentroids(nextC)
+    setCentroidHistory((prev) => [...prev, nextC.map((c) => c.slice())])
+    setAssignments(curA)
+    const nextIter = iteration + 1
+    setIteration(nextIter)
+    if (totalMoved < 0.02 || nextIter >= 8) {
+      setStepIndex(7) // converged
+    } else {
+      setStepIndex(5) // updated
+    }
+  }, [stepIndex, activeData.points, centroids, computeAssignment, computeMeans, k, iteration, handleJumpStep])
+
+  const handlePrevIteration = useCallback(() => {
+    if (centroidHistory.length > 2) {
+      const newHistory = centroidHistory.slice(0, -1)
+      const prevC = newHistory[newHistory.length - 1]
+      const prevA = computeAssignment(activeData.points, prevC)
+      setCentroids(prevC)
+      setCentroidHistory(newHistory)
+      setAssignments(prevA)
+      setIteration((it) => Math.max(0, it - 1))
+      setStepIndex(4)
+    } else {
+      resetSimulation(k, initStrategy)
+    }
+  }, [centroidHistory, activeData.points, computeAssignment, resetSimulation, k, initStrategy])
+
+  // Teacher-Edited Python Code Execution Handler
+  const handleRunTeacherCode = useCallback(
+    (extracted) => {
+      let newK = k
+      let newStrat = initStrategy
+      if (extracted.K !== undefined && Number.isInteger(extracted.K) && extracted.K >= 2 && extracted.K <= 5) {
+        newK = extracted.K
+        setK(newK)
+      }
+      if (extracted.strategy && typeof extracted.strategy === 'string') {
+        newStrat = extracted.strategy.toLowerCase().includes('poor') ? 'poor' : 'spread'
+        setInitStrategy(newStrat)
+      }
+      const initial = getInitialCentroids(activeData.points, newK, newStrat, bounds)
+      const assign1 = computeAssignment(activeData.points, initial)
+      const mean1 = computeMeans(activeData.points, assign1, newK, initial)
+      setCentroids(mean1)
+      setCentroidHistory([initial.map((c) => c.slice()), mean1.map((c) => c.slice())])
+      setAssignments(assign1)
+      setIteration(1)
+      setStepIndex(4)
+    },
+    [k, initStrategy, activeData.points, bounds, computeAssignment, computeMeans],
+  )
+
   const handleNext = () => {
     if (stepIndex < KM_STEPS.length - 1) {
       handleJumpStep(stepIndex + 1)
@@ -384,36 +568,30 @@ function TeacherKMeans() {
     }
   }
 
-  const handlePrev = () => {
-    if (stepIndex > 0) {
-      handleJumpStep(stepIndex - 1)
-    }
-  }
 
-  // Autoplay
+  // Autoplay (Cycles iterations smoothly)
   const timerRef = useRef(null)
   useEffect(() => {
     if (!isPlaying) {
       if (timerRef.current) clearInterval(timerRef.current)
       return undefined
     }
-    const intervalMs = Math.round(1600 / speed)
+    const intervalMs = Math.round(1500 / speed)
     timerRef.current = setInterval(() => {
       setStepIndex((cur) => {
         if (cur >= KM_STEPS.length - 1) {
           setIsPlaying(false)
           return cur
         }
-        const next = cur + 1
-        handleJumpStep(next)
-        return next
+        return cur
       })
+      handleNextIteration()
     }, intervalMs)
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [isPlaying, speed, handleJumpStep])
+  }, [isPlaying, speed, handleNextIteration])
 
   // SVG Scales
   const SVG_W = 680
@@ -475,7 +653,10 @@ function TeacherKMeans() {
                     borderColor: CLUSTER_COLORS[idx].hex,
                     background: CLUSTER_COLORS[idx].bg,
                     color: CLUSTER_COLORS[idx].hex,
+                    cursor: 'pointer',
                   }}
+                  onClick={() => handleCentroidClick(idx)}
+                  title={`Click to inspect Cluster ${idx + 1} centroid calculation`}
                 >
                   <span
                     style={{
@@ -516,6 +697,8 @@ function TeacherKMeans() {
             viewBox={`0 0 ${SVG_W} ${SVG_H}`}
             role="img"
             aria-label="K-Means scatter plot and centroids"
+            onClick={handleClearSelection}
+            style={{ cursor: 'crosshair' }}
           >
             {/* Grid lines */}
             <g className="tw-km-grid">
@@ -564,10 +747,11 @@ function TeacherKMeans() {
                 )
               })}
 
-            {/* Distance Lines from points to their nearest centroid */}
+            {/* Normal Distance Lines from points to their nearest centroid */}
             {showDistanceLines &&
               areCentroidsVisible &&
               areAssignmentsVisible &&
+              selectedPointIndex === null &&
               activeData.points.map((p, idx) => {
                 const cIdx = assignments[idx]
                 if (cIdx === null || !centroids[cIdx]) return null
@@ -585,6 +769,90 @@ function TeacherKMeans() {
                 )
               })}
 
+            {/* Interactive Distance Rulers from Selected Point A to All Centroids */}
+            {selectedPointIndex !== null && selectedPointBIndex === null && (
+              <g className="tw-km-interactive-rulers">
+                {centroids.map((c, cIdx) => {
+                  const ptA = activeData.points[selectedPointIndex]
+                  if (!ptA || !c) return null
+                  const dx = ptA[0] - c[0]
+                  const dy = ptA[1] - c[1]
+                  const distVal = Math.sqrt(dx * dx + dy * dy)
+                  const isClosest = assignments[selectedPointIndex] === cIdx
+                  const midX = (px(ptA[0]) + px(c[0])) / 2
+                  const midY = (py(ptA[1]) + py(c[1])) / 2
+                  const strokeCol = isClosest ? 'var(--good)' : CLUSTER_COLORS[cIdx].hex
+                  return (
+                    <g key={`interactive-ruler-${cIdx}`}>
+                      <line
+                        x1={px(ptA[0])}
+                        y1={py(ptA[1])}
+                        x2={px(c[0])}
+                        y2={py(c[1])}
+                        stroke={strokeCol}
+                        strokeWidth={isClosest ? 2.8 : 1.5}
+                        strokeDasharray="4 3"
+                        opacity={isClosest ? 1 : 0.65}
+                      />
+                      <g transform={`translate(${midX}, ${midY})`}>
+                        <rect
+                          x="-26"
+                          y="-10"
+                          width="52"
+                          height="20"
+                          rx="4"
+                          fill="#fff"
+                          stroke={strokeCol}
+                          strokeWidth={isClosest ? 2 : 1}
+                        />
+                        <text
+                          x="0"
+                          y="4"
+                          textAnchor="middle"
+                          fontSize="10.5"
+                          fontWeight={isClosest ? '700' : '600'}
+                          fill={strokeCol}
+                        >
+                          {distVal.toFixed(2)}{isClosest ? ' ★' : ''}
+                        </text>
+                      </g>
+                    </g>
+                  )
+                })}
+              </g>
+            )}
+
+            {/* Interactive Distance Ruler between Point A and Point B */}
+            {selectedPointIndex !== null && selectedPointBIndex !== null && (() => {
+              const ptA = activeData.points[selectedPointIndex]
+              const ptB = activeData.points[selectedPointBIndex]
+              if (!ptA || !ptB) return null
+              const dx = ptB[0] - ptA[0]
+              const dy = ptB[1] - ptA[1]
+              const distVal = Math.sqrt(dx * dx + dy * dy)
+              const midX = (px(ptA[0]) + px(ptB[0])) / 2
+              const midY = (py(ptA[1]) + py(ptB[1])) / 2
+              return (
+                <g key="interactive-two-point-ruler">
+                  <line
+                    x1={px(ptA[0])}
+                    y1={py(ptA[1])}
+                    x2={px(ptB[0])}
+                    y2={py(ptB[1])}
+                    stroke="var(--rust)"
+                    strokeWidth="2.5"
+                    strokeDasharray="5 3"
+                  />
+                  <g transform={`translate(${midX}, ${midY})`}>
+                    <rect x="-26" y="-10" width="52" height="20" rx="4" fill="#fff" stroke="var(--rust)" strokeWidth="2" />
+                    <text x="0" y="4" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--rust)">
+                      {distVal.toFixed(2)}
+                    </text>
+                  </g>
+                </g>
+              )
+            })()}
+
             {/* Data Points */}
             {activeData.points.map((p, idx) => {
               const cIdx = areAssignmentsVisible ? assignments[idx] : null
@@ -592,17 +860,74 @@ function TeacherKMeans() {
                 cIdx !== null && cIdx !== undefined
                   ? CLUSTER_COLORS[cIdx].hex
                   : UNASSIGNED_COLOR.hex
+              const isSelectedA = selectedPointIndex === idx
+              const isSelectedB = selectedPointBIndex === idx
+              const isClusterMember = selectedCentroidIndex !== null && assignments[idx] === selectedCentroidIndex
+
               return (
-                <circle
-                  key={`pt-${idx}`}
-                  className="tw-km-point"
-                  cx={px(p[0])}
-                  cy={py(p[1])}
-                  r={5.5}
-                  fill={fillColor}
-                >
-                  <title>{`Point (${p[0]}, ${p[1]})${cIdx !== null ? ` -> Cluster ${cIdx + 1}` : ''}`}</title>
-                </circle>
+                <g key={`pt-${idx}`}>
+                  {/* Cluster Member highlight halo when centroid is selected */}
+                  {isClusterMember && (
+                    <circle
+                      cx={px(p[0])}
+                      cy={py(p[1])}
+                      r={10}
+                      fill="none"
+                      stroke={CLUSTER_COLORS[selectedCentroidIndex].hex}
+                      strokeWidth={2}
+                      opacity={0.8}
+                    />
+                  )}
+
+                  {/* Selection highlight rings & labels */}
+                  {(isSelectedA || isSelectedB) && (
+                    <>
+                      <circle
+                        cx={px(p[0])}
+                        cy={py(p[1])}
+                        r={12}
+                        fill="none"
+                        stroke={isSelectedA ? 'var(--blue)' : 'var(--rust)'}
+                        strokeWidth={2.5}
+                        strokeDasharray="3 2"
+                      />
+                      <text
+                        x={px(p[0])}
+                        y={py(p[1]) - 14}
+                        textAnchor="middle"
+                        fontSize="11"
+                        fontWeight="800"
+                        fill={isSelectedA ? 'var(--blue)' : 'var(--rust)'}
+                      >
+                        {isSelectedA ? 'Point A' : 'Point B'}
+                      </text>
+                    </>
+                  )}
+
+                  {/* Main Point Circle */}
+                  <circle
+                    className="tw-km-point"
+                    cx={px(p[0])}
+                    cy={py(p[1])}
+                    r={isSelectedA || isSelectedB ? 7 : 5.5}
+                    fill={fillColor}
+                  >
+                    <title>{`Point (${p[0]}, ${p[1]})${cIdx !== null ? ` -> Cluster ${cIdx + 1}` : ''}`}</title>
+                  </circle>
+
+                  {/* Invisible enlarged hit target for easy touch/mouse clicking */}
+                  <circle
+                    cx={px(p[0])}
+                    cy={py(p[1])}
+                    r={16}
+                    fill="transparent"
+                    cursor="pointer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handlePointClick(idx)
+                    }}
+                  />
+                </g>
               )
             })}
 
@@ -612,12 +937,26 @@ function TeacherKMeans() {
                 const col = CLUSTER_COLORS[idx]
                 const cx = px(c[0])
                 const cy = py(c[1])
+                const isSelectedCentroid = selectedCentroidIndex === idx
                 return (
-                  <g key={`cent-${idx}`} className="tw-km-centroid" transform={`translate(${cx}, ${cy})`}>
+                  <g
+                    key={`cent-${idx}`}
+                    className="tw-km-centroid"
+                    transform={`translate(${cx}, ${cy})`}
+                    cursor="pointer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCentroidClick(idx)
+                    }}
+                  >
+                    {isSelectedCentroid && (
+                      <circle r={24} fill="none" stroke={col.hex} strokeWidth={2.5} strokeDasharray="4 2" />
+                    )}
                     <circle r={14} fill={col.hex} opacity={0.2} />
                     <circle r={10} fill="#fff" stroke={col.hex} strokeWidth={2.5} />
                     <line x1={-5} y1={0} x2={5} y2={0} stroke={col.hex} strokeWidth={2} />
                     <line x1={0} y1={-5} x2={0} y2={5} stroke={col.hex} strokeWidth={2} />
+                    <title>{`Centroid C${idx + 1} (${c[0].toFixed(2)}, ${c[1].toFixed(2)}) - Click to inspect calculation`}</title>
                   </g>
                 )
               })}
@@ -632,6 +971,15 @@ function TeacherKMeans() {
               </g>
             )}
           </svg>
+
+          {/* Interactive ML Concept Whiteboard / Inspector */}
+          <TeacherConceptWhiteboard
+            selectedObject={whiteboardObject}
+            onClearSelection={handleClearSelection}
+            onQuickInspectPoint={handleQuickInspectPoint}
+            onQuickInspectCentroid={handleQuickInspectCentroid}
+            algorithmType="kmeans"
+          />
         </>
       }
       parameterControls={
@@ -702,13 +1050,73 @@ function TeacherKMeans() {
         <TeacherPlaybackControls
           isPlaying={isPlaying}
           speed={speed}
-          canPrev={stepIndex > 0}
+          canPrev={iteration > 0 || stepIndex > 0}
           canNext={stepIndex < KM_STEPS.length - 1}
           onReset={() => resetSimulation(k, initStrategy)}
-          onPrev={handlePrev}
-          onNext={handleNext}
+          onPrev={handlePrevIteration}
+          onNext={handleNextIteration}
           onTogglePlay={() => setIsPlaying((p) => !p)}
           onSpeedChange={setSpeed}
+          nextLabel="Next Iteration"
+          prevLabel="Prev"
+          canStep={true}
+          onStep={handleNext}
+          stepLabel="Step Phase"
+          statusPill={
+            <span>
+              Iteration <b>{iteration}</b> · K=<b>{k}</b> · WCSS <b>{currentWCSS > 0 ? currentWCSS.toFixed(1) : '—'}</b>
+            </span>
+          }
+        />
+      }
+      teachingMode={teachingMode}
+      onTeachingModeChange={setTeachingMode}
+      focusMode={focusMode}
+      onFocusModeChange={setFocusMode}
+      onTogglePlay={() => setIsPlaying((p) => !p)}
+      onNext={handleNextIteration}
+      onPrev={handlePrevIteration}
+      onReset={() => resetSimulation(k, initStrategy)}
+      snapshotBar={
+        snapshot ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px' }}>
+            <span style={{ color: 'var(--rust)', fontWeight: 600 }}>
+              📌 Baseline: K={snapshot.k}, WCSS={snapshot.inertia.toFixed(1)}
+            </span>
+            <span style={{ color: 'var(--muted)' }}>➔ Current: <b>{currentWCSS.toFixed(1)}</b></span>
+            <button
+              type="button"
+              className="tw-btn-chip"
+              onClick={() => setSnapshot(null)}
+              style={{ fontSize: '10.5px', padding: '1px 6px' }}
+            >
+              ✕ Clear
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="tw-btn-chip"
+            onClick={() => setSnapshot({ k, inertia: currentWCSS, iteration })}
+            title="Save baseline clustering to compare before and after changes"
+            style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <span>📌</span> Save Snapshot
+          </button>
+        )
+      }
+      codePanel={
+        <TeacherCodeEditor
+          algorithmType="k-means"
+          filename="kmeans.py"
+          codeLines={KM_CODE}
+          activeLineRange={activeMapping.lines}
+          stepNumber={stepIndex + 1}
+          totalSteps={KM_STEPS.length}
+          stepLabel={activeMapping.label}
+          liveVariables={kmLiveVariables}
+          visualNotice={activeMapping.visualNotice}
+          onRunCode={handleRunTeacherCode}
         />
       }
       statusExplanation={

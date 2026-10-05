@@ -3,6 +3,10 @@ import TeacherWorkspaceLayout from './TeacherWorkspaceLayout.jsx'
 import TeacherDatasetSelector from './TeacherDatasetSelector.jsx'
 import TeacherPlaybackControls from './TeacherPlaybackControls.jsx'
 import TeacherExplanationPanel from './TeacherExplanationPanel.jsx'
+import TeacherCodeEditor from './TeacherCodeEditor.jsx'
+import TeacherConceptWhiteboard from './TeacherConceptWhiteboard.jsx'
+import { explainLRPoint, explainLRTwoPoints, explainLRLine } from './teacherConceptExplainer.jsx'
+import { LR_CODE, LR_CODE_MAPPINGS } from './teacherAlgorithmCode.js'
 import './TeacherLinearRegression.css'
 
 // Sample Presets
@@ -213,13 +217,24 @@ function TeacherLinearRegression() {
 
   const ols = useMemo(() => computeOLS(activeData.points), [activeData.points])
 
+  // Teaching Mode & Split Focus (Default: Visual mode)
+  const [teachingMode, setTeachingMode] = useState('visual')
+  const [focusMode, setFocusMode] = useState('balanced')
+
   // Simulation State
   const [stepIndex, setStepIndex] = useState(0)
   const [b1, setB1] = useState(() => Number((ols.b1 * 0.4).toFixed(2)))
   const [b0, setB0] = useState(() => Number((ols.b0 * 0.6).toFixed(1)))
+  const [learningRate, setLearningRate] = useState(0.05)
   const [iteration, setIteration] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
+  const [snapshot, setSnapshot] = useState(null) // Baseline snapshot comparison
+
+  // Concept-First Interactive Whiteboard States
+  const [selectedPointIndex, setSelectedPointIndex] = useState(null)
+  const [selectedPointBIndex, setSelectedPointBIndex] = useState(null)
+  const [selectedLine, setSelectedLine] = useState(false)
 
   // Auxiliary toggles
   const [showResiduals, setShowResiduals] = useState(true)
@@ -236,6 +251,9 @@ function TeacherLinearRegression() {
     setStepIndex(0)
     setIteration(0)
     setIsPlaying(false)
+    setSelectedPointIndex(null)
+    setSelectedPointBIndex(null)
+    setSelectedLine(false)
   }, [ols])
 
   // CSV Load Handler
@@ -261,7 +279,108 @@ function TeacherLinearRegression() {
   const currentMSE = useMemo(() => computeMSE(activeData.points, b1, b0), [activeData.points, b1, b0])
   const olsMSE = useMemo(() => computeMSE(activeData.points, ols.b1, ols.b0), [activeData.points, ols])
 
-  // Single step transition
+  // Compute selected whiteboard explanation object
+  const whiteboardObject = useMemo(() => {
+    if (selectedPointIndex !== null && selectedPointBIndex !== null) {
+      const ptA = activeData.points[selectedPointIndex]
+      const ptB = activeData.points[selectedPointBIndex]
+      if (ptA && ptB) {
+        return explainLRTwoPoints(ptA, ptB, selectedPointIndex, selectedPointBIndex, activeData.xLabel, activeData.yLabel)
+      }
+    }
+    if (selectedPointIndex !== null) {
+      const pt = activeData.points[selectedPointIndex]
+      if (pt) {
+        return explainLRPoint(pt, selectedPointIndex, b1, b0, activeData.xLabel, activeData.yLabel, currentMSE, activeData.points.length)
+      }
+    }
+    if (selectedLine) {
+      return explainLRLine(b1, b0, ols, currentMSE, learningRate, activeData.xLabel, activeData.yLabel)
+    }
+    return null
+  }, [selectedPointIndex, selectedPointBIndex, selectedLine, activeData, b1, b0, ols, currentMSE, learningRate])
+
+  const handlePointClick = (idx) => {
+    setSelectedLine(false)
+    if (selectedPointIndex === null) {
+      setSelectedPointIndex(idx)
+      setSelectedPointBIndex(null)
+    } else if (selectedPointIndex === idx) {
+      setSelectedPointIndex(null)
+      setSelectedPointBIndex(null)
+    } else if (selectedPointBIndex === null) {
+      setSelectedPointBIndex(idx)
+    } else if (selectedPointBIndex === idx) {
+      setSelectedPointBIndex(null)
+    } else {
+      setSelectedPointIndex(idx)
+      setSelectedPointBIndex(null)
+    }
+  }
+
+  const handleLineClick = () => {
+    setSelectedPointIndex(null)
+    setSelectedPointBIndex(null)
+    setSelectedLine((prev) => !prev)
+  }
+
+  const handleClearSelection = () => {
+    setSelectedPointIndex(null)
+    setSelectedPointBIndex(null)
+    setSelectedLine(false)
+  }
+
+  const handleQuickInspectPoint = () => {
+    setSelectedLine(false)
+    setSelectedPointBIndex(null)
+    setSelectedPointIndex(0)
+  }
+
+  const handleQuickInspectLine = () => {
+    setSelectedPointIndex(null)
+    setSelectedPointBIndex(null)
+    setSelectedLine(true)
+  }
+
+  // Real-time Gradients & Code Step Mappings
+  const lrGradients = useMemo(() => {
+    const pts = activeData.points
+    if (!pts || pts.length === 0) return { gradSlope: 0, gradIntercept: 0, avgResidual: 0 }
+    let sumGradSlope = 0
+    let sumGradIntercept = 0
+    let sumRes = 0
+    pts.forEach((p) => {
+      const pred = b1 * p.x + b0
+      const err = pred - p.y
+      sumGradSlope += err * p.x
+      sumGradIntercept += err
+      sumRes += Math.abs(err)
+    })
+    const n = pts.length
+    return {
+      gradSlope: Number(((2 / n) * sumGradSlope).toFixed(3)),
+      gradIntercept: Number(((2 / n) * sumGradIntercept).toFixed(3)),
+      avgResidual: Number((sumRes / n).toFixed(3)),
+    }
+  }, [activeData.points, b1, b0])
+
+  const activeMapping = LR_CODE_MAPPINGS[stepIndex] || LR_CODE_MAPPINGS[0]
+
+  const lrLiveVariables = useMemo(() => {
+    const pts = activeData.points
+    return [
+      { name: 'N', value: `${pts.length} pts`, highlight: stepIndex === 0 },
+      { name: 'slope (b₁)', value: b1.toFixed(3), highlight: stepIndex === 1 || stepIndex === 6 },
+      { name: 'intercept (b₀)', value: b0.toFixed(2), highlight: stepIndex === 1 || stepIndex === 6 },
+      { name: 'MSE (loss)', value: currentMSE.toFixed(3), highlight: stepIndex === 4 || stepIndex === 7 },
+      { name: 'grad_slope', value: lrGradients.gradSlope.toFixed(3), highlight: stepIndex === 5 },
+      { name: 'grad_intercept', value: lrGradients.gradIntercept.toFixed(3), highlight: stepIndex === 5 },
+      { name: 'mean_|err|', value: lrGradients.avgResidual.toFixed(2), highlight: stepIndex === 3 },
+      { name: 'lr', value: learningRate.toFixed(2) },
+    ]
+  }, [activeData.points, b1, b0, currentMSE, lrGradients, stepIndex, learningRate])
+
+  // Single step transition (Fine-grain)
   const handleJumpStep = useCallback(
     (targetIdx) => {
       setStepIndex(targetIdx)
@@ -270,14 +389,14 @@ function TeacherLinearRegression() {
         setB0(Number((ols.b0 * 0.6).toFixed(1)))
         setIteration(0)
       } else if (targetIdx === 5 || targetIdx === 6) {
-        const alpha = 0.4
+        const alpha = Math.min(0.85, learningRate * 8)
         const newB1 = b1 + (ols.b1 - b1) * alpha
         const newB0 = b0 + (ols.b0 - b0) * alpha
         setB1(Number(newB1.toFixed(3)))
         setB0(Number(newB0.toFixed(3)))
         setIteration(1)
       } else if (targetIdx === 7) {
-        const alpha = 0.75
+        const alpha = Math.min(0.9, learningRate * 14)
         const newB1 = b1 + (ols.b1 - b1) * alpha
         const newB0 = b0 + (ols.b0 - b0) * alpha
         setB1(Number(newB1.toFixed(3)))
@@ -286,10 +405,70 @@ function TeacherLinearRegression() {
       } else if (targetIdx === 8) {
         setB1(Number(ols.b1.toFixed(3)))
         setB0(Number(ols.b0.toFixed(3)))
-        setIteration(5)
+        setIteration(6)
       }
     },
-    [b1, b0, ols],
+    [b1, b0, ols, learningRate],
+  )
+
+  // Iteration-Level Playback (Projector-first classroom unit)
+  const handleNextIteration = useCallback(() => {
+    if (stepIndex < 6) {
+      handleJumpStep(6)
+    } else {
+      const alpha = Math.min(0.85, learningRate * 6)
+      const newB1 = b1 + (ols.b1 - b1) * alpha
+      const newB0 = b0 + (ols.b0 - b0) * alpha
+      setB1(Number(newB1.toFixed(3)))
+      setB0(Number(newB0.toFixed(3)))
+      const nextIter = iteration + 1
+      setIteration(nextIter)
+      if (Math.abs(newB1 - ols.b1) < 0.04 && Math.abs(newB0 - ols.b0) < 0.15) {
+        setStepIndex(8)
+      } else {
+        setStepIndex(7)
+      }
+    }
+  }, [stepIndex, learningRate, b1, b0, ols, iteration, handleJumpStep])
+
+  const handlePrevIteration = useCallback(() => {
+    if (iteration > 1) {
+      const alpha = 0.5
+      const prevB1 = b1 - (ols.b1 - b1) * alpha
+      const prevB0 = b0 - (ols.b0 - b0) * alpha
+      setB1(Number(prevB1.toFixed(3)))
+      setB0(Number(prevB0.toFixed(3)))
+      setIteration((it) => it - 1)
+      setStepIndex(6)
+    } else {
+      resetModelToInit()
+    }
+  }, [iteration, b1, b0, ols, resetModelToInit])
+
+  // Teacher-Edited Python Code Execution Handler
+  const handleRunTeacherCode = useCallback(
+    (extracted) => {
+      if (extracted.learning_rate !== undefined && Number.isFinite(extracted.learning_rate)) {
+        setLearningRate(extracted.learning_rate)
+      }
+      if (extracted.slope !== undefined && Number.isFinite(extracted.slope)) {
+        setB1(Number(extracted.slope.toFixed(3)))
+      }
+      if (extracted.intercept !== undefined && Number.isFinite(extracted.intercept)) {
+        setB0(Number(extracted.intercept.toFixed(2)))
+      }
+      const lr = extracted.learning_rate !== undefined ? extracted.learning_rate : learningRate
+      const curB1 = extracted.slope !== undefined ? extracted.slope : b1
+      const curB0 = extracted.intercept !== undefined ? extracted.intercept : b0
+      const alpha = Math.min(0.9, lr * 6)
+      const nextB1 = curB1 + (ols.b1 - curB1) * alpha
+      const nextB0 = curB0 + (ols.b0 - curB0) * alpha
+      setB1(Number(nextB1.toFixed(3)))
+      setB0(Number(nextB0.toFixed(3)))
+      setIteration((it) => it + 1)
+      setStepIndex(6)
+    },
+    [learningRate, b1, b0, ols],
   )
 
   const handleNext = () => {
@@ -300,11 +479,6 @@ function TeacherLinearRegression() {
     }
   }
 
-  const handlePrev = () => {
-    if (stepIndex > 0) {
-      handleJumpStep(stepIndex - 1)
-    }
-  }
 
   // Autoplay
   const timerRef = useRef(null)
@@ -506,15 +680,49 @@ function TeacherLinearRegression() {
               />
             )}
 
-            {/* Candidate Line */}
-            {isLineVisible && (
+            {/* Baseline Snapshot Ghost Line (Comparison Feature) */}
+            {snapshot && (
               <line
-                className="tw-lr-line"
                 x1={px(xMin)}
-                y1={py(b1 * xMin + b0)}
+                y1={py(snapshot.b1 * xMin + snapshot.b0)}
                 x2={px(xMax)}
-                y2={py(b1 * xMax + b0)}
-              />
+                y2={py(snapshot.b1 * xMax + snapshot.b0)}
+                stroke="var(--rust)"
+                strokeWidth="2.5"
+                strokeDasharray="6 4"
+                opacity="0.85"
+              >
+                <title>{`Baseline Snapshot Model: ŷ = ${snapshot.b1.toFixed(2)}x + ${snapshot.b0.toFixed(2)} (MSE: ${snapshot.mse.toFixed(2)})`}</title>
+              </line>
+            )}
+
+            {/* Candidate Line with selection glow */}
+            {isLineVisible && (
+              <>
+                {selectedLine && (
+                  <line
+                    x1={px(xMin)}
+                    y1={py(b1 * xMin + b0)}
+                    x2={px(xMax)}
+                    y2={py(b1 * xMax + b0)}
+                    stroke="var(--rust)"
+                    strokeWidth={8}
+                    opacity={0.35}
+                  />
+                )}
+                <line
+                  className="tw-lr-line"
+                  x1={px(xMin)}
+                  y1={py(b1 * xMin + b0)}
+                  x2={px(xMax)}
+                  y2={py(b1 * xMax + b0)}
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleLineClick()
+                  }}
+                />
+              </>
             )}
 
             {/* Residual Lines */}
@@ -534,6 +742,65 @@ function TeacherLinearRegression() {
                 )
               })}
 
+            {/* Interactive Residual Callout for Selected Point A */}
+            {selectedPointIndex !== null && selectedPointBIndex === null && (() => {
+              const ptA = activeData.points[selectedPointIndex]
+              if (!ptA) return null
+              const yHat = b1 * ptA.x + b0
+              const err = ptA.y - yHat
+              const midY = (py(ptA.y) + py(yHat)) / 2
+              return (
+                <g key="interactive-point-residual">
+                  <line
+                    x1={px(ptA.x)}
+                    y1={py(ptA.y)}
+                    x2={px(ptA.x)}
+                    y2={py(yHat)}
+                    stroke="var(--rust)"
+                    strokeWidth={3}
+                    strokeDasharray="4 2"
+                  />
+                  <g transform={`translate(${px(ptA.x) + 38}, ${midY})`}>
+                    <rect x="-32" y="-10" width="64" height="20" rx="4" fill="#fff" stroke="var(--rust)" strokeWidth="1.5" />
+                    <text x="0" y="4" textAnchor="middle" fontSize="10.5" fontWeight="700" fill="var(--rust)">
+                      e = {err.toFixed(2)}
+                    </text>
+                  </g>
+                </g>
+              )
+            })()}
+
+            {/* Interactive Secant Line between Point A and Point B */}
+            {selectedPointIndex !== null && selectedPointBIndex !== null && (() => {
+              const ptA = activeData.points[selectedPointIndex]
+              const ptB = activeData.points[selectedPointBIndex]
+              if (!ptA || !ptB) return null
+              const dx = ptB.x - ptA.x
+              const dy = ptB.y - ptA.y
+              const slopeVal = dx !== 0 ? dy / dx : 0
+              const midX = (px(ptA.x) + px(ptB.x)) / 2
+              const midY = (py(ptA.y) + py(ptB.y)) / 2
+              return (
+                <g key="interactive-secant-line">
+                  <line
+                    x1={px(ptA.x)}
+                    y1={py(ptA.y)}
+                    x2={px(ptB.x)}
+                    y2={py(ptB.y)}
+                    stroke="var(--rust)"
+                    strokeWidth="2.5"
+                    strokeDasharray="5 3"
+                  />
+                  <g transform={`translate(${midX}, ${midY})`}>
+                    <rect x="-30" y="-11" width="60" height="22" rx="4" fill="#fff" stroke="var(--rust)" strokeWidth="2" />
+                    <text x="0" y="4" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--rust)">
+                      m = {slopeVal.toFixed(2)}
+                    </text>
+                  </g>
+                </g>
+              )
+            })()}
+
             {/* Prediction Dots on Line */}
             {isLineVisible &&
               isPredVisible &&
@@ -551,17 +818,56 @@ function TeacherLinearRegression() {
               })}
 
             {/* Data Points */}
-            {activeData.points.map((p, i) => (
-              <circle
-                key={`pt-${i}`}
-                className="tw-lr-point"
-                cx={px(p.x)}
-                cy={py(p.y)}
-                r={5}
-              >
-                <title>{`(${p.x}, ${p.y})`}</title>
-              </circle>
-            ))}
+            {activeData.points.map((p, i) => {
+              const isSelectedA = selectedPointIndex === i
+              const isSelectedB = selectedPointBIndex === i
+              return (
+                <g key={`pt-${i}`}>
+                  {(isSelectedA || isSelectedB) && (
+                    <>
+                      <circle
+                        cx={px(p.x)}
+                        cy={py(p.y)}
+                        r={12}
+                        fill="none"
+                        stroke={isSelectedA ? 'var(--blue)' : 'var(--rust)'}
+                        strokeWidth={2.5}
+                        strokeDasharray="3 2"
+                      />
+                      <text
+                        x={px(p.x)}
+                        y={py(p.y) - 14}
+                        textAnchor="middle"
+                        fontSize="11"
+                        fontWeight="800"
+                        fill={isSelectedA ? 'var(--blue)' : 'var(--rust)'}
+                      >
+                        {isSelectedA ? 'Point A' : 'Point B'}
+                      </text>
+                    </>
+                  )}
+                  <circle
+                    className="tw-lr-point"
+                    cx={px(p.x)}
+                    cy={py(p.y)}
+                    r={isSelectedA || isSelectedB ? 7 : 5.5}
+                  >
+                    <title>{`(${p.x}, ${p.y})`}</title>
+                  </circle>
+                  <circle
+                    cx={px(p.x)}
+                    cy={py(p.y)}
+                    r={16}
+                    fill="transparent"
+                    cursor="pointer"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handlePointClick(i)
+                    }}
+                  />
+                </g>
+              )
+            })}
 
             {/* Convergence indicator */}
             {stepIndex === 8 && (
@@ -573,10 +879,19 @@ function TeacherLinearRegression() {
               </g>
             )}
           </svg>
+
+          {/* Interactive ML Concept Whiteboard */}
+          <TeacherConceptWhiteboard
+            selectedObject={whiteboardObject}
+            onClearSelection={handleClearSelection}
+            onQuickInspectPoint={handleQuickInspectPoint}
+            onQuickInspectCentroid={handleQuickInspectLine}
+            algorithmType="linear-regression"
+          />
         </>
       }
       parameterControls={
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
           <div className="tw-ctrl-group">
             <span className="tw-ctrl-label">Slope (b₁):</span>
             <input
@@ -589,7 +904,7 @@ function TeacherLinearRegression() {
                 setB1(Number(e.target.value))
                 if (stepIndex === 0) setStepIndex(1)
               }}
-              style={{ width: 100, accentColor: 'var(--blue)' }}
+              style={{ width: 90, accentColor: 'var(--blue)' }}
             />
             <b>{b1.toFixed(2)}</b>
           </div>
@@ -606,9 +921,23 @@ function TeacherLinearRegression() {
                 setB0(Number(e.target.value))
                 if (stepIndex === 0) setStepIndex(1)
               }}
-              style={{ width: 100, accentColor: 'var(--blue)' }}
+              style={{ width: 90, accentColor: 'var(--blue)' }}
             />
             <b>{b0.toFixed(1)}</b>
+          </div>
+
+          <div className="tw-ctrl-group">
+            <span className="tw-ctrl-label">Learning Rate (α):</span>
+            <input
+              type="range"
+              min="0.01"
+              max="0.25"
+              step="0.01"
+              value={learningRate}
+              onChange={(e) => setLearningRate(Number(e.target.value))}
+              style={{ width: 80, accentColor: 'var(--blue)' }}
+            />
+            <b>{learningRate.toFixed(2)}</b>
           </div>
 
           <div className="tw-divider" />
@@ -622,13 +951,73 @@ function TeacherLinearRegression() {
         <TeacherPlaybackControls
           isPlaying={isPlaying}
           speed={speed}
-          canPrev={stepIndex > 0}
+          canPrev={iteration > 0 || stepIndex > 0}
           canNext={stepIndex < LR_STEPS.length - 1}
           onReset={resetModelToInit}
-          onPrev={handlePrev}
-          onNext={handleNext}
+          onPrev={handlePrevIteration}
+          onNext={handleNextIteration}
           onTogglePlay={() => setIsPlaying((p) => !p)}
           onSpeedChange={setSpeed}
+          nextLabel="Next Iteration"
+          prevLabel="Prev"
+          canStep={true}
+          onStep={handleNext}
+          stepLabel="Step Phase"
+          statusPill={
+            <span>
+              Iteration <b>{iteration}</b> · MSE <b>{currentMSE.toFixed(2)}</b>
+            </span>
+          }
+        />
+      }
+      teachingMode={teachingMode}
+      onTeachingModeChange={setTeachingMode}
+      focusMode={focusMode}
+      onFocusModeChange={setFocusMode}
+      onTogglePlay={() => setIsPlaying((p) => !p)}
+      onNext={handleNextIteration}
+      onPrev={handlePrevIteration}
+      onReset={resetModelToInit}
+      snapshotBar={
+        snapshot ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px' }}>
+            <span style={{ color: 'var(--rust)', fontWeight: 600 }}>
+              📌 Baseline MSE: {snapshot.mse.toFixed(2)}
+            </span>
+            <span style={{ color: 'var(--muted)' }}>➔ Current: <b>{currentMSE.toFixed(2)}</b></span>
+            <button
+              type="button"
+              className="tw-btn-chip"
+              onClick={() => setSnapshot(null)}
+              style={{ fontSize: '10.5px', padding: '1px 6px' }}
+            >
+              ✕ Clear
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="tw-btn-chip"
+            onClick={() => setSnapshot({ b1, b0, mse: currentMSE })}
+            title="Save baseline model to compare before and after changes"
+            style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <span>📌</span> Save Snapshot
+          </button>
+        )
+      }
+      codePanel={
+        <TeacherCodeEditor
+          algorithmType="linear-regression"
+          filename="linear_regression.py"
+          codeLines={LR_CODE}
+          activeLineRange={activeMapping.lines}
+          stepNumber={stepIndex + 1}
+          totalSteps={LR_STEPS.length}
+          stepLabel={activeMapping.label}
+          liveVariables={lrLiveVariables}
+          visualNotice={activeMapping.visualNotice}
+          onRunCode={handleRunTeacherCode}
         />
       }
       statusExplanation={

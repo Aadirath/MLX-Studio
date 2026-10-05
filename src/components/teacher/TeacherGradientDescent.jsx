@@ -3,6 +3,10 @@ import TeacherWorkspaceLayout from './TeacherWorkspaceLayout.jsx'
 import TeacherDatasetSelector from './TeacherDatasetSelector.jsx'
 import TeacherPlaybackControls from './TeacherPlaybackControls.jsx'
 import TeacherExplanationPanel from './TeacherExplanationPanel.jsx'
+import TeacherCodeEditor from './TeacherCodeEditor.jsx'
+import TeacherConceptWhiteboard from './TeacherConceptWhiteboard.jsx'
+import { explainGDPoint } from './teacherConceptExplainer.jsx'
+import { GD_CODE, GD_CODE_MAPPINGS } from './teacherAlgorithmCode.js'
 import './TeacherGradientDescent.css'
 
 // Preset Datasets
@@ -258,6 +262,10 @@ function TeacherGradientDescent() {
   // Learning Rate
   const [learningRate, setLearningRate] = useState(0.3)
 
+  // Teaching Mode & Split Focus (Default: Visual mode)
+  const [teachingMode, setTeachingMode] = useState('visual')
+  const [focusMode, setFocusMode] = useState('balanced')
+
   // Simulation State
   const initialPos = useMemo(() => {
     return [
@@ -271,6 +279,10 @@ function TeacherGradientDescent() {
   const [path, setPath] = useState([initialPos])
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
+  const [snapshot, setSnapshot] = useState(null) // Baseline snapshot comparison
+
+  // Concept-First Interactive Whiteboard States
+  const [selectedTrajectoryIndex, setSelectedTrajectoryIndex] = useState(null)
 
   // Reset to initial
   const resetToInit = useCallback(() => {
@@ -278,6 +290,7 @@ function TeacherGradientDescent() {
     setPath([initialPos])
     setStepIndex(0)
     setIsPlaying(false)
+    setSelectedTrajectoryIndex(null)
   }, [initialPos])
 
   // Single step descent
@@ -344,6 +357,97 @@ function TeacherGradientDescent() {
     [initialPos, learningRate, stats.olsB1, stats.olsB0, stepDescent, path],
   )
 
+  // Current Parameters & Metrics
+  const [b1, b0] = pos
+  const currentMSE = useMemo(() => calcMSE(b1, b0), [calcMSE, b1, b0])
+  const olsMSE = useMemo(() => calcMSE(stats.olsB1, stats.olsB0), [calcMSE, stats])
+
+  const [mn, bn] = useMemo(() => normFromReal(b1, b0), [normFromReal, b1, b0])
+  const [dm, db] = useMemo(() => calcGradNorm(mn, bn), [calcGradNorm, mn, bn])
+
+  // Compute selected whiteboard explanation object
+  const whiteboardObject = useMemo(() => {
+    const targetIdx = selectedTrajectoryIndex !== null ? selectedTrajectoryIndex : path.length - 1
+    const targetPoint = path[targetIdx] || pos
+    const curB1 = targetPoint[0]
+    const curB0 = targetPoint[1]
+    const [tMn, tBn] = normFromReal(curB1, curB0)
+    const [tDm, tDb] = calcGradNorm(tMn, tBn)
+    const tMSE = calcMSE(curB1, curB0)
+
+    return explainGDPoint(curB1, curB0, learningRate, tDm, tDb, tMSE, stats, targetIdx + 1)
+  }, [selectedTrajectoryIndex, path, pos, normFromReal, calcGradNorm, calcMSE, learningRate, stats])
+
+  const handleContourPointClick = (idx) => {
+    setSelectedTrajectoryIndex(idx)
+  }
+
+  const handleClearSelection = () => {
+    setSelectedTrajectoryIndex(null)
+  }
+
+  const handleQuickInspectPoint = () => {
+    setSelectedTrajectoryIndex(path.length - 1)
+  }
+
+  const handleQuickInspectStep = () => {
+    setSelectedTrajectoryIndex(0)
+  }
+
+  // Iteration-Level Playback (Projector-first classroom unit)
+  const handleNextIteration = useCallback(() => {
+    const curB1 = pos[0]
+    const curB0 = pos[1]
+    const res = stepDescent(curB1, curB0, path)
+    setPos([res.nextB1, res.nextB0])
+    setPath(res.nextPath)
+    if (res.nextPath.length >= 16 || (Math.abs(dm) < 0.05 && Math.abs(db) < 0.05)) {
+      setStepIndex(6) // converged
+    } else {
+      setStepIndex(3) // step update
+    }
+  }, [pos, path, stepDescent, dm, db])
+
+  const handlePrevIteration = useCallback(() => {
+    if (path.length > 2) {
+      const newPath = path.slice(0, -1)
+      const prevPos = newPath[newPath.length - 1]
+      setPos(prevPos)
+      setPath(newPath)
+      setStepIndex(3)
+    } else {
+      resetToInit()
+    }
+  }, [path, resetToInit])
+
+  // Teacher-Edited Python Code Execution Handler
+  const handleRunTeacherCode = useCallback(
+    (extracted) => {
+      let lr = learningRate
+      if (extracted.learning_rate !== undefined && Number.isFinite(extracted.learning_rate)) {
+        lr = Number(extracted.learning_rate)
+        setLearningRate(lr)
+      }
+      let curB1 = pos[0]
+      let curB0 = pos[1]
+      if (extracted.theta && Array.isArray(extracted.theta) && extracted.theta.length === 2) {
+        curB1 = Number(extracted.theta[0])
+        curB0 = Number(extracted.theta[1])
+        setPos([curB1, curB0])
+        setPath([[curB1, curB0]])
+      }
+      const [curMn, curBn] = normFromReal(curB1, curB0)
+      const [curDm, curDb] = calcGradNorm(curMn, curBn)
+      const nextMn = curMn - lr * curDm
+      const nextBn = curBn - lr * curDb
+      const [nextB1, nextB0] = realFromNorm(nextMn, nextBn)
+      setPos([nextB1, nextB0])
+      setPath([[curB1, curB0], [nextB1, nextB0]])
+      setStepIndex(3)
+    },
+    [learningRate, pos, normFromReal, calcGradNorm, realFromNorm],
+  )
+
   const handleNext = () => {
     if (stepIndex < GD_STEPS.length - 1) {
       handleJumpStep(stepIndex + 1)
@@ -352,36 +456,29 @@ function TeacherGradientDescent() {
     }
   }
 
-  const handlePrev = () => {
-    if (stepIndex > 0) {
-      handleJumpStep(stepIndex - 1)
-    }
-  }
-
-  // Autoplay
+  // Autoplay (Cycles iterations down the bowl)
   const timerRef = useRef(null)
   useEffect(() => {
     if (!isPlaying) {
       if (timerRef.current) clearInterval(timerRef.current)
       return undefined
     }
-    const intervalMs = Math.round(1600 / speed)
+    const intervalMs = Math.round(1500 / speed)
     timerRef.current = setInterval(() => {
       setStepIndex((cur) => {
-        if (cur >= GD_STEPS.length - 1) {
+        if (cur === 6) {
           setIsPlaying(false)
           return cur
         }
-        const next = cur + 1
-        handleJumpStep(next)
-        return next
+        return cur
       })
+      handleNextIteration()
     }, intervalMs)
 
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
-  }, [isPlaying, speed, handleJumpStep])
+  }, [isPlaying, speed, handleNextIteration])
 
   // CSV Load Handler
   const handleCsvLoaded = (parsedResult) => {
@@ -400,13 +497,26 @@ function TeacherGradientDescent() {
     resetToInit()
   }
 
-  // Current Parameters & Metrics
-  const [b1, b0] = pos
-  const currentMSE = useMemo(() => calcMSE(b1, b0), [calcMSE, b1, b0])
-  const olsMSE = useMemo(() => calcMSE(stats.olsB1, stats.olsB0), [calcMSE, stats])
 
-  const [mn, bn] = useMemo(() => normFromReal(b1, b0), [normFromReal, b1, b0])
-  const [dm, db] = useMemo(() => calcGradNorm(mn, bn), [calcGradNorm, mn, bn])
+  // Synchronized Code Mappings & Live Variables
+  const activeMapping = GD_CODE_MAPPINGS[stepIndex] || GD_CODE_MAPPINGS[0]
+
+  const gdLiveVariables = useMemo(() => {
+    const stepSizeM = -learningRate * dm
+    const stepSizeB = -learningRate * db
+    const iterDisplay = stepIndex <= 2 ? 0 : stepIndex === 3 || stepIndex === 4 ? 1 : stepIndex === 5 ? 4 : path.length - 1
+
+    return [
+      { name: 'θ[0] (b₁)', value: b1.toFixed(3), highlight: stepIndex === 0 || stepIndex === 3 },
+      { name: 'θ[1] (b₀)', value: b0.toFixed(2), highlight: stepIndex === 0 || stepIndex === 3 },
+      { name: 'loss (MSE)', value: currentMSE.toFixed(3), highlight: stepIndex === 1 || stepIndex === 4 },
+      { name: '∇J (grad)', value: `[${dm.toFixed(3)}, ${db.toFixed(3)}]`, highlight: stepIndex === 2 },
+      { name: 'step (-α·∇)', value: `[${stepSizeM.toFixed(3)}, ${stepSizeB.toFixed(3)}]`, highlight: stepIndex === 3 },
+      { name: 'α (lr)', value: learningRate.toFixed(2) },
+      { name: 'target MSE', value: olsMSE.toFixed(2) },
+      { name: 'iter', value: iterDisplay },
+    ]
+  }, [b1, b0, currentMSE, dm, db, learningRate, olsMSE, stepIndex, path.length])
 
   // Landscape scales
   const W = 460
@@ -475,7 +585,8 @@ function TeacherGradientDescent() {
         />
       }
       visualization={
-        <div className="tw-gd-vis-layout">
+        <>
+          <div className="tw-gd-vis-layout">
           {/* Left: 2D Error Surface */}
           <div>
             <div className="tw-vis-card-header" style={{ marginBottom: 6 }}>
@@ -555,9 +666,38 @@ function TeacherGradientDescent() {
                     strokeWidth="2.2"
                     strokeDasharray={isOvershooting ? '4 2' : 'none'}
                   />
-                  {path.map(([pb1, pb0], i) => (
-                    <circle key={i} cx={px(pb1)} cy={py(pb0)} r={3} fill="var(--rust)" />
-                  ))}
+                  {path.map(([pb1, pb0], i) => {
+                    const isSelected = selectedTrajectoryIndex === i || (selectedTrajectoryIndex === null && i === path.length - 1)
+                    return (
+                      <g key={i}>
+                        {isSelected && (
+                          <circle
+                            cx={px(pb1)}
+                            cy={py(pb0)}
+                            r={11}
+                            fill="none"
+                            stroke="var(--rust)"
+                            strokeWidth={2}
+                            strokeDasharray="2 2"
+                          />
+                        )}
+                        <circle cx={px(pb1)} cy={py(pb0)} r={isSelected ? 5.5 : 3.5} fill="var(--rust)" />
+                        <circle
+                          cx={px(pb1)}
+                          cy={py(pb0)}
+                          r={16}
+                          fill="transparent"
+                          cursor="pointer"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleContourPointClick(i)
+                          }}
+                        >
+                          <title>{`Step #${i + 1}: b₁=${pb1.toFixed(2)}, b₀=${pb0.toFixed(2)}`}</title>
+                        </circle>
+                      </g>
+                    )
+                  })}
                 </>
               )}
 
@@ -568,6 +708,21 @@ function TeacherGradientDescent() {
                 stroke="var(--ink)"
                 strokeWidth="0.8"
               />
+
+              {/* Baseline Snapshot Ghost Marker */}
+              {snapshot && (
+                <circle
+                  cx={px(snapshot.b1)}
+                  cy={py(snapshot.b0)}
+                  r={7}
+                  fill="none"
+                  stroke="var(--rust)"
+                  strokeWidth="2.5"
+                  strokeDasharray="4 3"
+                >
+                  <title>{`Baseline Snapshot (b₁=${snapshot.b1.toFixed(2)}, b₀=${snapshot.b0.toFixed(2)}, Loss=${snapshot.mse.toFixed(2)})`}</title>
+                </circle>
+              )}
 
               {/* Gradient Vectors (Step 2 & 3) */}
               {stepIndex >= 2 && (
@@ -594,7 +749,16 @@ function TeacherGradientDescent() {
               )}
 
               {/* Current Position */}
-              <circle cx={px(b1)} cy={py(b0)} r={7} fill="var(--blue)" stroke="#fff" strokeWidth="2" />
+              <g
+                cursor="pointer"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleContourPointClick(path.length - 1)
+                }}
+              >
+                <circle cx={px(b1)} cy={py(b0)} r={12} fill="none" stroke="var(--blue)" strokeWidth={2} strokeDasharray="3 2" />
+                <circle cx={px(b1)} cy={py(b0)} r={7} fill="var(--blue)" stroke="#fff" strokeWidth={2} />
+              </g>
             </svg>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '11px', color: 'var(--muted)' }}>
@@ -628,6 +792,20 @@ function TeacherGradientDescent() {
                 strokeWidth="1.2"
                 strokeDasharray="4 3"
               />
+              {/* Baseline Snapshot Ghost Model Line */}
+              {snapshot && (
+                <line
+                  x1={mx(minX)}
+                  y1={my(snapshot.b1 * minX + snapshot.b0)}
+                  x2={mx(maxX)}
+                  y2={my(snapshot.b1 * maxX + snapshot.b0)}
+                  stroke="var(--rust)"
+                  strokeWidth="1.8"
+                  strokeDasharray="4 3"
+                  opacity="0.85"
+                />
+              )}
+
               {/* Current Line */}
               <line
                 x1={mx(minX)}
@@ -644,6 +822,16 @@ function TeacherGradientDescent() {
             </div>
           </div>
         </div>
+
+        {/* Interactive ML Concept Whiteboard */}
+        <TeacherConceptWhiteboard
+          selectedObject={whiteboardObject}
+          onClearSelection={handleClearSelection}
+          onQuickInspectPoint={handleQuickInspectPoint}
+          onQuickInspectCentroid={handleQuickInspectStep}
+          algorithmType="gradient-descent"
+        />
+      </>
       }
       parameterControls={
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -695,13 +883,73 @@ function TeacherGradientDescent() {
         <TeacherPlaybackControls
           isPlaying={isPlaying}
           speed={speed}
-          canPrev={stepIndex > 0}
+          canPrev={path.length > 1 || stepIndex > 0}
           canNext={stepIndex < GD_STEPS.length - 1}
           onReset={resetToInit}
-          onPrev={handlePrev}
-          onNext={handleNext}
+          onPrev={handlePrevIteration}
+          onNext={handleNextIteration}
           onTogglePlay={() => setIsPlaying((p) => !p)}
           onSpeedChange={setSpeed}
+          nextLabel="Next Iteration"
+          prevLabel="Prev"
+          canStep={true}
+          onStep={handleNext}
+          stepLabel="Step Phase"
+          statusPill={
+            <span>
+              Iteration <b>{stepIndex <= 2 ? 0 : stepIndex === 3 || stepIndex === 4 ? 1 : stepIndex === 5 ? 4 : path.length - 1}</b> · Loss <b>{currentMSE.toFixed(2)}</b> · α <b>{learningRate.toFixed(2)}</b>
+            </span>
+          }
+        />
+      }
+      teachingMode={teachingMode}
+      onTeachingModeChange={setTeachingMode}
+      focusMode={focusMode}
+      onFocusModeChange={setFocusMode}
+      onTogglePlay={() => setIsPlaying((p) => !p)}
+      onNext={handleNextIteration}
+      onPrev={handlePrevIteration}
+      onReset={resetToInit}
+      snapshotBar={
+        snapshot ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '12px' }}>
+            <span style={{ color: 'var(--rust)', fontWeight: 600 }}>
+              📌 Baseline: Loss={snapshot.mse.toFixed(2)} (α={snapshot.lr})
+            </span>
+            <span style={{ color: 'var(--muted)' }}>➔ Current: <b>{currentMSE.toFixed(2)}</b></span>
+            <button
+              type="button"
+              className="tw-btn-chip"
+              onClick={() => setSnapshot(null)}
+              style={{ fontSize: '10.5px', padding: '1px 6px' }}
+            >
+              ✕ Clear
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="tw-btn-chip"
+            onClick={() => setSnapshot({ b1, b0, mse: currentMSE, lr: learningRate })}
+            title="Save baseline descent parameters to compare before and after changes"
+            style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: 4 }}
+          >
+            <span>📌</span> Save Snapshot
+          </button>
+        )
+      }
+      codePanel={
+        <TeacherCodeEditor
+          algorithmType="gradient-descent"
+          filename="gradient_descent.py"
+          codeLines={GD_CODE}
+          activeLineRange={activeMapping.lines}
+          stepNumber={stepIndex + 1}
+          totalSteps={GD_STEPS.length}
+          stepLabel={activeMapping.label}
+          liveVariables={gdLiveVariables}
+          visualNotice={activeMapping.visualNotice}
+          onRunCode={handleRunTeacherCode}
         />
       }
       statusExplanation={

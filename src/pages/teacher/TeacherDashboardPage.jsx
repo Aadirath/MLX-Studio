@@ -9,7 +9,7 @@ const TEACHER_TOPICS = [
     path: '/teacher/linear-regression',
     description:
       'Demonstrate how a regression model learns the relationship between input and output values and how the line of best fit changes based on the data.',
-    features: ['Residual error visualization', 'Step-by-step weight updates', 'Outlier sensitivity demo'],
+    features: ['Visual & Code+Diagram synchronized modes', 'Residual error visualization', 'Live gradients & weights'],
   },
   {
     id: 'k-means',
@@ -18,7 +18,7 @@ const TEACHER_TOPICS = [
     path: '/teacher/k-means',
     description:
       'Demonstrate how K-Means groups data points by repeatedly assigning points to clusters and updating cluster centroids.',
-    features: ['Distance calculation & Voronoi hints', 'Centroid movement trails', 'Deliberate poor-start comparison'],
+    features: ['Visual & Code+Diagram synchronized modes', 'Distance & Voronoi hints', 'Live centroid means & shift'],
   },
   {
     id: 'gradient-descent',
@@ -27,7 +27,7 @@ const TEACHER_TOPICS = [
     path: '/teacher/gradient-descent',
     description:
       'Demonstrate how an optimisation algorithm iteratively updates model parameters to minimise a loss function.',
-    features: ['2D Error surface landscape', 'Gradient vector direction', 'Learning rate overshooting demo'],
+    features: ['Visual & Code+Diagram synchronized modes', '2D Error surface landscape', 'Live gradient vectors & steps'],
   },
 ]
 
@@ -41,8 +41,8 @@ function TeacherDashboardPage() {
         </span>
       </div>
       <p className="sub">
-        Dedicated interactive environments designed for lecture demonstrations. Control parameters, execute algorithms
-        step-by-step, and visually explain internal mechanics in real time.
+        Dedicated interactive environments designed for lecture demonstrations. Teach through <b>Diagram-First</b> or 
+        synchronized <b>Code + Diagram</b> side-by-side mode with live variable state evaluation.
       </p>
 
       <div className="cards">
