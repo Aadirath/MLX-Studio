@@ -1,0 +1,90 @@
+.tw-lr-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+}
+
+.tw-lr-grid line {
+  stroke: var(--line);
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+
+.tw-lr-axis {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.tw-lr-label {
+  font-size: 11px;
+  fill: var(--muted);
+  font-family: inherit;
+}
+
+.tw-lr-point {
+  fill: var(--ink);
+  stroke: #fff;
+  stroke-width: 1.5;
+  transition: r 0.2s ease;
+}
+
+.tw-lr-point:hover {
+  r: 6;
+  fill: var(--blue);
+}
+
+.tw-lr-pred-point {
+  fill: var(--blue);
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+
+.tw-lr-residual {
+  stroke: var(--rust);
+  stroke-width: 1.8;
+  stroke-dasharray: 4 3;
+}
+
+.tw-lr-residual-box {
+  fill: var(--rust-soft);
+  opacity: 0.35;
+  stroke: var(--rust);
+  stroke-width: 0.8;
+}
+
+.tw-lr-line {
+  stroke: var(--blue);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: all 0.25s ease-out;
+}
+
+.tw-lr-ols-line {
+  stroke: var(--good);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 4;
+}
+
+.tw-param-sliders {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 8px 12px;
+}
+
+.tw-slider-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.tw-slider-col input[type='range'] {
+  width: 110px;
+  accent-color: var(--blue);
+}

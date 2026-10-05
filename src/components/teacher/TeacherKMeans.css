@@ -1,0 +1,74 @@
+.tw-km-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+}
+
+.tw-km-grid line {
+  stroke: var(--line);
+  stroke-dasharray: 3 3;
+  opacity: 0.6;
+}
+
+.tw-km-axis {
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.tw-km-label {
+  font-size: 11px;
+  fill: var(--muted);
+  font-family: inherit;
+}
+
+.tw-km-point {
+  stroke: #fff;
+  stroke-width: 1.5;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.tw-km-point:hover {
+  r: 7;
+}
+
+.tw-km-centroid {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: grab;
+}
+
+.tw-km-dist-line {
+  stroke-dasharray: 2 2;
+  opacity: 0.35;
+  transition: all 0.3s ease;
+}
+
+.tw-km-trail {
+  stroke-dasharray: 3 3;
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+.tw-km-clusters-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.tw-km-cluster-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid;
+}

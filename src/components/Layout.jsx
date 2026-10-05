@@ -44,6 +44,9 @@ function Layout() {
             <NavLink to="/topic/k-means" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               K-means
             </NavLink>
+            <NavLink to="/teacher" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              Teacher mode
+            </NavLink>
           </nav>
           <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label="Toggle color theme">
             {(theme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark' ? '🌙' : '☀️'}
