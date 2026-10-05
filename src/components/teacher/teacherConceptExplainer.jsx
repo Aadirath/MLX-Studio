@@ -11,6 +11,8 @@ export function formatNum(val, decimals = 2) {
 // 1. K-MEANS EXPLANATIONS
 // ==========================================
 
+const CLUSTER_HEX_COLORS = ['#2f5d8a', '#a6462d', '#3f7d53', '#c47d2b', '#6b4f7e']
+
 export function explainKMeansPoint(point, pointIndex, centroids, assignments, col1 = 'Feature 1', col2 = 'Feature 2') {
   const [px, py] = point
   const assignedCluster = assignments[pointIndex]
@@ -43,6 +45,15 @@ export function explainKMeansPoint(point, pointIndex, centroids, assignments, co
   }
 
   const nearest = distances[minIdx]
+  const maxDist = Math.max(...distances.map((d) => d.distNum), 0.1)
+  const visualBars = distances.map((d) => ({
+    label: d.cName,
+    coords: d.coords,
+    value: `${d.dist} units`,
+    pct: Math.min(100, Math.max(14, Math.round((d.distNum / maxDist) * 100))),
+    isBest: d.cIdx === minIdx,
+    color: CLUSTER_HEX_COLORS[d.cIdx % CLUSTER_HEX_COLORS.length],
+  }))
 
   return {
     type: 'point',
@@ -51,6 +62,7 @@ export function explainKMeansPoint(point, pointIndex, centroids, assignments, co
     coords: { x: px, y: py },
     question: `Why is this point assigned to ${clusterLabel}?`,
     observation: `This data point has coordinates ${col1} = ${formatNum(px)} and ${col2} = ${formatNum(py)}. To decide which cluster it belongs to, K-Means calculates its Euclidean distance to all ${centroids.length} centroids and assigns it to the closest one.`,
+    visualBars,
     formula: {
       name: 'Euclidean Distance Formula',
       symbolic: 'd(P, C) = √((x_P - x_C)² + (y_P - y_C)²)',
