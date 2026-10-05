@@ -1,60 +1,80 @@
+import { useState } from 'react'
 import './TeacherExplanationPanel.css'
 
 function TeacherExplanationPanel({
   stepNumber,
   totalSteps,
   stepTitle,
+  shortSummary,
   whatIsHappening,
   whyItMatters,
   metrics = [],
   talkingPoint,
 }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+
   return (
-    <div className="tw-panel">
-      {/* Header */}
-      <div className="tw-panel-step-header">
-        <span className="tw-panel-step-num">
-          Step {stepNumber} of {totalSteps}
-        </span>
-        <h3 className="tw-panel-step-title">{stepTitle}</h3>
-      </div>
+    <div>
+      {/* Compact Status Bar (always visible) */}
+      <div className="tw-compact-status-bar">
+        <div className="tw-status-left">
+          <span className="tw-status-badge">
+            Step {stepNumber}{totalSteps ? `/${totalSteps}` : ''}
+          </span>
+          <span className="tw-status-text">{stepTitle}</span>
+          {shortSummary && <span className="tw-status-sub">— {shortSummary}</span>}
+        </div>
 
-      {/* What is happening? */}
-      <div className="tw-panel-section">
-        <h4 className="tw-panel-heading">What is happening?</h4>
-        <div className="tw-panel-box">
-          <p className="tw-panel-text">{whatIsHappening}</p>
+        <div className="tw-status-right">
+          {/* Quick Metrics (visible without expanding) */}
+          {metrics.slice(0, 3).map((m, idx) => (
+            <span
+              key={idx}
+              style={{
+                fontSize: '11.5px',
+                color: 'var(--ink)',
+                background: 'var(--paper)',
+                padding: '2px 7px',
+                borderRadius: '4px',
+                border: '1px solid var(--line)',
+                fontFamily: 'var(--font-mono, monospace)',
+              }}
+            >
+              <span style={{ color: 'var(--muted)' }}>{m.label}: </span>
+              <b>{m.value}</b>
+            </span>
+          ))}
+
+          {/* Toggle Explain This Step */}
+          <button
+            type="button"
+            className={`tw-explain-toggle-btn ${isExpanded ? 'active' : ''}`}
+            onClick={() => setIsExpanded((prev) => !prev)}
+            title="Toggle deeper explanation and teaching notes"
+          >
+            <span>💡</span> {isExpanded ? 'Hide explanation ▴' : 'Explain this step ▾'}
+          </button>
         </div>
       </div>
 
-      {/* Why? */}
-      <div className="tw-panel-section">
-        <h4 className="tw-panel-heading">Why?</h4>
-        <div className="tw-panel-box highlight">
-          <p className="tw-panel-text">{whyItMatters}</p>
-        </div>
-      </div>
-
-      {/* Metrics & Current Values */}
-      {metrics && metrics.length > 0 && (
-        <div className="tw-panel-section">
-          <h4 className="tw-panel-heading">Current Values & Metrics</h4>
-          <div className="tw-panel-metrics">
-            {metrics.map((m, idx) => (
-              <div className="tw-metric-card" key={idx}>
-                <span className="tw-metric-label">{m.label}</span>
-                <span className={`tw-metric-val ${m.status || ''}`}>{m.value}</span>
-              </div>
-            ))}
+      {/* Expandable Deep Explanation Drawer */}
+      {isExpanded && (
+        <div className="tw-expanded-drawer">
+          <div className="tw-drawer-section">
+            <h5 className="tw-drawer-heading">What is happening?</h5>
+            <div className="tw-drawer-box">{whatIsHappening}</div>
           </div>
-        </div>
-      )}
 
-      {/* Teacher Talking Point */}
-      {talkingPoint && (
-        <div className="tw-panel-tip">
-          <div className="tw-tip-title">💡 Classroom Prompt</div>
-          <div>{talkingPoint}</div>
+          <div className="tw-drawer-section">
+            <h5 className="tw-drawer-heading">Why?</h5>
+            <div className="tw-drawer-box highlight">{whyItMatters}</div>
+          </div>
+
+          {talkingPoint && (
+            <div className="tw-drawer-tip">
+              <b>💬 Classroom Discussion Prompt:</b> {talkingPoint}
+            </div>
+          )}
         </div>
       )}
     </div>

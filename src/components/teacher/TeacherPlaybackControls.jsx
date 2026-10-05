@@ -1,7 +1,4 @@
 function TeacherPlaybackControls({
-  currentStep,
-  totalSteps,
-  stepLabels = [],
   isPlaying = false,
   speed = 1,
   canPrev = true,
@@ -10,40 +7,38 @@ function TeacherPlaybackControls({
   onPrev,
   onNext,
   onTogglePlay,
-  onJumpStep,
   onSpeedChange,
 }) {
   return (
-    <>
-      {/* Primary Action Buttons */}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 10 }}>
+      {/* Clear simple primary controls: [ Reset ] [ ◀ Step ] [ ▶ Play / ❚❚ Pause ] [ Step ▶ ] */}
       <div className="tw-pb-buttons">
-        <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--muted)', marginRight: 6 }}>
-          Step {currentStep + 1}/{totalSteps}
-        </span>
         <button
           type="button"
           className="tw-pb-btn"
           onClick={onReset}
-          title="Reset simulation to initial state"
+          title="Reset to initial state"
         >
           <span>⟲</span> Reset
         </button>
 
-        <button
-          type="button"
-          className="tw-pb-btn"
-          onClick={onPrev}
-          disabled={!canPrev || isPlaying}
-          title="Go to previous step"
-        >
-          <span>‹</span> Prev
-        </button>
+        {canPrev !== false && (
+          <button
+            type="button"
+            className="tw-pb-btn"
+            onClick={onPrev}
+            disabled={!canPrev || isPlaying}
+            title="Step backward"
+          >
+            <span>◀</span> Step
+          </button>
+        )}
 
         <button
           type="button"
           className="tw-pb-btn primary"
           onClick={onTogglePlay}
-          title={isPlaying ? 'Pause auto-play' : 'Play step-by-step animation'}
+          title={isPlaying ? 'Pause simulation' : 'Play simulation'}
         >
           {isPlaying ? (
             <>
@@ -61,33 +56,13 @@ function TeacherPlaybackControls({
           className="tw-pb-btn"
           onClick={onNext}
           disabled={!canNext || isPlaying}
-          title="Advance to next step"
+          title="Step forward"
         >
-          Next <span>›</span>
+          Step <span>▶</span>
         </button>
       </div>
 
-      {/* Step Pills Timeline */}
-      <div className="tw-pb-stepper">
-        {stepLabels.map((lbl, idx) => {
-          const isActive = idx === currentStep
-          const isPassed = idx < currentStep
-          return (
-            <button
-              type="button"
-              key={idx}
-              className={`tw-step-pill ${isActive ? 'active' : ''} ${isPassed ? 'passed' : ''}`}
-              onClick={() => onJumpStep?.(idx)}
-              disabled={isPlaying}
-              title={`Jump to ${lbl}`}
-            >
-              {lbl}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Speed Controls */}
+      {/* Animation Speed Selector */}
       <div className="tw-speed-selector">
         <span style={{ fontSize: '11px', color: 'var(--muted)', marginRight: 4 }}>Speed:</span>
         {[0.5, 1, 2].map((s) => (
@@ -96,13 +71,13 @@ function TeacherPlaybackControls({
             key={s}
             className={`tw-btn-chip ${speed === s ? 'active' : ''}`}
             onClick={() => onSpeedChange?.(s)}
-            style={{ padding: '2px 7px', fontSize: '11px' }}
+            style={{ padding: '2px 8px', fontSize: '11px' }}
           >
             {s}x
           </button>
         ))}
       </div>
-    </>
+    </div>
   )
 }
 

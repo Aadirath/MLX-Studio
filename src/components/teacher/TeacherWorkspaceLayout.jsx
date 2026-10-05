@@ -10,14 +10,15 @@ const TEACHER_WORKSPACES = [
 function TeacherWorkspaceLayout({
   title,
   subtitle,
-  controls,
+  datasetSelector,
   visualization,
-  explanationPanel,
+  parameterControls,
   playbackControls,
+  statusExplanation,
 }) {
   return (
     <div className="tw-workspace">
-      {/* Top Header & Navigation */}
+      {/* 1. Header & Navigation */}
       <header className="tw-header">
         <div className="tw-nav-row">
           <Link to="/teacher" className="tw-back-link">
@@ -38,22 +39,25 @@ function TeacherWorkspaceLayout({
 
         <div className="tw-title-row">
           <h1 className="tw-title">{title}</h1>
-          <span className="tw-badge">Teacher Demo</span>
+          <span className="tw-badge">Interactive Playground</span>
         </div>
         <p className="tw-desc">{subtitle}</p>
       </header>
 
-      {/* Controls & Configuration Bar */}
-      {controls && <div className="tw-controls-bar">{controls}</div>}
+      {/* 2. Dataset Section (Preset dropdown + Upload CSV + Mapping) */}
+      {datasetSelector && <div>{datasetSelector}</div>}
 
-      {/* Main Split Body: Visualization + Teaching Panel */}
-      <div className="tw-body-grid">
-        <div className="tw-vis-card">{visualization}</div>
-        <div className="tw-side-col">{explanationPanel}</div>
+      {/* 3. Main Visualisation (Full width & dominant) */}
+      <div className="tw-vis-card">{visualization}</div>
+
+      {/* 4. Controls & Playback Row */}
+      <div className="tw-controls-playback-bar">
+        {parameterControls && <div className="tw-param-row">{parameterControls}</div>}
+        {playbackControls && <div>{playbackControls}</div>}
       </div>
 
-      {/* Playback Controls Bar */}
-      {playbackControls && <div className="tw-playback-bar">{playbackControls}</div>}
+      {/* 5. Progressive Disclosure Step Status & Explanation */}
+      {statusExplanation && <div>{statusExplanation}</div>}
     </div>
   )
 }

@@ -1,100 +1,64 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import TeacherWorkspaceLayout from './TeacherWorkspaceLayout.jsx'
+import TeacherDatasetSelector from './TeacherDatasetSelector.jsx'
 import TeacherPlaybackControls from './TeacherPlaybackControls.jsx'
 import TeacherExplanationPanel from './TeacherExplanationPanel.jsx'
 import './TeacherGradientDescent.css'
 
-// Dataset: Housing dataset from Linear Regression
-const X = [1, 2, 3, 4, 5, 6, 6.5, 7, 8, 9]
-const Y = [2.1, 2.9, 4.2, 4.8, 6.1, 6.9, 7.3, 7.8, 8.6, 9.4]
-const N = X.length
-
-const meanX = X.reduce((a, b) => a + b, 0) / N
-const meanY = Y.reduce((a, b) => a + b, 0) / N
-const stdX = Math.sqrt(X.reduce((s, x) => s + (x - meanX) ** 2, 0) / N)
-const stdY = Math.sqrt(Y.reduce((s, y) => s + (y - meanY) ** 2, 0) / N)
-const Xn = X.map((x) => (x - meanX) / stdX)
-const Yn = Y.map((y) => (y - meanY) / stdY)
-
-// OLS Optimum
-const sxy = X.reduce((s, x, i) => s + (x - meanX) * (Y[i] - meanY), 0)
-const sxx = X.reduce((s, x) => s + (x - meanX) ** 2, 0)
-const OLS_B1 = sxy / sxx
-const OLS_B0 = meanY - OLS_B1 * meanX
-
-// Landscape bounds
-const B1_MIN = -0.6
-const B1_MAX = 3.0
-const B0_MIN = -2.0
-const B0_MAX = 8.5
-
-function mseReal(b1, b0) {
-  let s = 0
-  for (let i = 0; i < N; i++) {
-    const e = b1 * X[i] + b0 - Y[i]
-    s += e * e
-  }
-  return s / N
-}
-
-function realFromNorm(mn, bn) {
-  const b1 = (mn * stdY) / stdX
-  const b0 = meanY - b1 * meanX + bn * stdY
-  return [b1, b0]
-}
-
-function normFromReal(b1, b0) {
-  const mn = (b1 * stdX) / stdY
-  const bn = (b0 - meanY + b1 * meanX) / stdY
-  return [mn, bn]
-}
-
-function gradNorm(mn, bn) {
-  let dm = 0
-  let db = 0
-  for (let i = 0; i < N; i++) {
-    const e = mn * Xn[i] + bn - Yn[i]
-    dm += e * Xn[i]
-    db += e
-  }
-  return [(2 * dm) / N, (2 * db) / N]
-}
-
-function lerpColor(t) {
-  const a = [0xf3, 0xef, 0xe4]
-  const b = [0x2f, 0x5d, 0x8a]
-  const c = a.map((av, i) => Math.round(av + (b[i] - av) * t))
-  return `rgb(${c[0]},${c[1]},${c[2]})`
-}
-
-const GRID_X = 46
-const GRID_Y = 34
-const W = 560
-const H = 380
-const PAD = { l: 52, r: 24, t: 20, b: 42 }
-const plotW = W - PAD.l - PAD.r
-const plotH = H - PAD.t - PAD.b
-const cellW = plotW / GRID_X
-const cellH = plotH / GRID_Y
-
-const px = (b1) => PAD.l + ((b1 - B1_MIN) / (B1_MAX - B1_MIN)) * plotW
-const py = (b0) => PAD.t + plotH - ((b0 - B0_MIN) / (B0_MAX - B0_MIN)) * plotH
-
-// Precomputed heatmap background
-const HEAT_CELLS = []
-for (let i = 0; i < GRID_X; i++) {
-  const b1 = B1_MIN + ((i + 0.5) * (B1_MAX - B1_MIN)) / GRID_X
-  for (let j = 0; j < GRID_Y; j++) {
-    const b0 = B0_MIN + ((j + 0.5) * (B0_MAX - B0_MIN)) / GRID_Y
-    const t = Math.min(1, Math.sqrt(mseReal(b1, b0)) / 6)
-    HEAT_CELLS.push({
-      key: `${i}-${j}`,
-      x: PAD.l + i * cellW,
-      y: PAD.t + plotH - (j + 1) * cellH,
-      fill: lerpColor(t),
-    })
-  }
-}
+// Preset Datasets
+const SAMPLE_PRESETS = [
+  {
+    id: 'housing',
+    name: 'Housing Prices (Standard 10 points)',
+    col1: 'Area (100 sq ft)',
+    col2: 'Price (₹ lakh)',
+    points: [
+      { x: 1, y: 2.1 },
+      { x: 2, y: 2.9 },
+      { x: 3, y: 4.2 },
+      { x: 4, y: 4.8 },
+      { x: 5, y: 6.1 },
+      { x: 6, y: 6.9 },
+      { x: 6.5, y: 7.3 },
+      { x: 7, y: 7.8 },
+      { x: 8, y: 8.6 },
+      { x: 9, y: 9.4 },
+    ],
+  },
+  {
+    id: 'steep',
+    name: 'Steep Growth Trend',
+    col1: 'Hours Studied',
+    col2: 'Exam Marks',
+    points: [
+      { x: 1, y: 1.5 },
+      { x: 2, y: 3.2 },
+      { x: 3, y: 4.9 },
+      { x: 4, y: 6.8 },
+      { x: 5, y: 8.5 },
+      { x: 6, y: 10.2 },
+      { x: 7, y: 12.1 },
+      { x: 8, y: 13.9 },
+    ],
+  },
+  {
+    id: 'noisy',
+    name: 'High Variance (Noisy Data)',
+    col1: 'Marketing Spend ($k)',
+    col2: 'Sales ($k)',
+    points: [
+      { x: 1, y: 3.0 },
+      { x: 2, y: 1.8 },
+      { x: 3, y: 5.5 },
+      { x: 4, y: 3.9 },
+      { x: 5, y: 7.2 },
+      { x: 6, y: 5.4 },
+      { x: 7, y: 8.9 },
+      { x: 8, y: 7.1 },
+      { x: 9, y: 10.5 },
+    ],
+  },
+]
 
 function starPoints(cx, cy) {
   const pts = []
@@ -106,164 +70,248 @@ function starPoints(cx, cy) {
   return pts.join(' ')
 }
 
-const START_POSITIONS = {
-  topLeft: { label: 'Far Top-Left (Under-tilted)', b1: -0.3, b0: 6.5 },
-  bottomRight: { label: 'Far Bottom-Right (Over-tilted)', b1: 2.3, b0: -0.5 },
-  nearMin: { label: 'Near Minimum', b1: 0.5, b0: 2.0 },
-}
-
 const LR_PRESETS = [
-  { label: 'Small (0.05)', lr: 0.05, desc: 'Slow convergence; tiny timid steps.' },
-  { label: 'Appropriate (0.30)', lr: 0.3, desc: 'Rapid, smooth downhill descent.' },
+  { label: 'Small (0.05)', lr: 0.05, desc: 'Slow convergence; tiny timid steps' },
+  { label: 'Appropriate (0.30)', lr: 0.3, desc: 'Rapid, smooth downhill descent' },
   { label: 'Very Large (0.95)', lr: 0.95, desc: 'Overshooting & oscillation across valley!' },
 ]
 
 const GD_STEPS = [
   {
     key: 'initial_param',
-    label: '1. Initial State',
-    title: 'Initial Parameter Coordinates',
-    what: 'We place our model parameters (b₁, b₀) at an arbitrary starting location on the error landscape. The error is high.',
+    title: 'Initial Parameters',
+    short: 'Arbitrary starting guess (b₁, b₀)',
+    what: 'We place parameters (b₁, b₀) at a starting location on the error landscape. The error is high.',
     why: 'Optimization begins from an initial guess. The model has no prior knowledge of where the valley bottom lies.',
-    talkingPoint:
-      'Point out the blue starting circle on the heatmap and the corresponding poorly-fitting line on the mini chart to the right.',
+    talkingPoint: 'Point out the starting position on the heatmap and the corresponding poorly-fitting line on the mini chart.',
   },
   {
     key: 'calculate_loss',
-    label: '2. Compute Loss',
-    title: 'Evaluating Loss at Current Position',
-    what: 'We compute the Mean Squared Error (MSE) for the current (b₁, b₀). The background color indicates elevation: darker blue represents worse loss.',
+    title: 'Compute Loss',
+    short: 'Measuring cost at current position',
+    what: 'We compute Mean Squared Error (MSE) for the current (b₁, b₀). Darker blue represents higher error.',
     why: 'Loss quantifies how far our current parameter choices are from explaining the data.',
-    talkingPoint:
-      'Explain the analogy: The loss surface is like a 2D bowl or terrain. Our goal is to roll a ball to the deepest depression at the bottom.',
+    talkingPoint: 'The loss surface is like a 2D bowl. The goal is to roll down to the lowest depression.',
   },
   {
     key: 'calculate_gradient',
-    label: '3. Calculate Gradient',
-    title: 'Measuring Slope & Steepest Ascent',
-    what: 'We calculate the gradient vector: ∇J = [∂J/∂b₁, ∂J/∂b₀]. The red arrow points in the direction of steepest loss INCREASE.',
-    why: 'The gradient mathematically identifies the direction of maximal climb. Therefore, the exact opposite direction (−∇J) is steepest downhill.',
-    talkingPoint:
-      'Emphasize this core rule: "The gradient points uphill. We must step in the NEGATIVE gradient direction to reduce error."',
+    title: 'Measure Gradient',
+    short: 'Finding direction of steepest ascent (∇J)',
+    what: 'The gradient vector ∇J = [∂J/∂b₁, ∂J/∂b₀] points uphill toward steepest error increase.',
+    why: 'Calculus mathematically identifies the direction of maximal climb. Opposing it (−∇J) leads steepest downhill.',
+    talkingPoint: 'Emphasize the golden rule: The gradient points uphill. We must step in the negative gradient direction.',
   },
   {
     key: 'parameter_update',
-    label: '4. Parameter Update',
-    title: 'Taking a Step Downhill',
-    what: 'Parameters update using: w_new = w_old − α·∇J. The step size is scaled by the learning rate (α). The green arrow shows the actual step taken.',
-    why: 'This step guarantees a decrease in loss provided the learning rate is not excessively large.',
-    talkingPoint:
-      'Notice how the step size combines the steepness of the terrain with our chosen learning rate multiplier.',
+    title: 'Parameter Step',
+    short: 'w_new = w_old − α · ∇J',
+    what: 'Parameters take a downhill step scaled by the learning rate (α). The green arrow shows the actual step.',
+    why: 'This step guarantees reduced loss as long as the learning rate is not excessively large.',
+    talkingPoint: 'Notice how the step size combines the steepness of the terrain with the learning rate.',
   },
   {
     key: 'recalculate_loss',
-    label: '5. Recalculate Loss',
-    title: 'New Position & Error Drop',
-    what: 'At the new coordinates, the line adjusts and the Mean Squared Error drops. The blue marker has shifted into a lighter, lower-error region.',
-    why: 'Verifies progress: one iteration of gradient descent has successfully reduced the objective cost.',
-    talkingPoint:
-      'Compare the new MSE value with step 1. Note how the line on the right rotated closer to the data scatter.',
+    title: 'Error Decrease',
+    short: 'Verified error drop (ΔMSE)',
+    what: 'At the new coordinates, the line adjusts and the MSE drops. The marker shifts toward lighter terrain.',
+    why: 'Verifies progress: one iteration of gradient descent has successfully decreased cost.',
+    talkingPoint: 'Note how the line on the right rotated closer to the data scatter.',
   },
   {
     key: 'repeat',
-    label: '6. Multi-Step Repeat',
-    title: 'Iterative Trajectory Downhill',
+    title: 'Iterative Trajectory',
+    short: 'Continuous descent down the landscape',
     what: 'The update repeats across successive iterations. The rust trail plots the exact path taken down the error surface.',
     why: 'Gradient descent navigates complex terrains step-by-step until the slope levels out.',
-    talkingPoint:
-      'Show how the steps naturally become smaller as the parameter nears the valley floor, because the gradient magnitude shrinks near a flat minimum.',
+    talkingPoint: 'Steps naturally become smaller near the bottom because the gradient magnitude shrinks.',
   },
   {
     key: 'convergence',
-    label: '7. Convergence',
-    title: 'Convergence at the Minimum',
-    what: 'The parameter settles at the gold star (the global minimum). Here the gradient is zero (||∇J|| ≈ 0), matching the OLS best fit.',
-    why: 'At the bottom of the bowl, slope is zero. The optimization has converged to the best possible linear model.',
-    talkingPoint:
-      'Celebrate convergence! Explain that in deep learning, millions of parameters follow this same fundamental descent rule.',
+    title: 'Convergence',
+    short: 'Reached the bowl minimum (OLS fit)',
+    what: 'The parameter settles at the gold star (global minimum). Gradient is near zero (||∇J|| ≈ 0).',
+    why: 'At the bottom of the bowl, slope is zero. The optimization has converged to the best possible model.',
+    talkingPoint: 'In deep learning, models with billions of parameters follow this same fundamental rule.',
   },
 ]
 
 function TeacherGradientDescent() {
-  const [startKey, setStartKey] = useState('topLeft')
+  // Dataset State
+  const [selectedPresetId, setSelectedPresetId] = useState('housing')
+  const [isCustomCsv, setIsCustomCsv] = useState(false)
+  const [csvData, setCsvData] = useState(null)
+  const [colX, setColX] = useState('')
+  const [colY, setColY] = useState('')
+
+  // Active Points
+  const activeData = useMemo(() => {
+    if (isCustomCsv && csvData && colX && colY) {
+      const validPoints = []
+      csvData.rows.forEach((row) => {
+        const x = Number(row[colX])
+        const y = Number(row[colY])
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+          validPoints.push({ x, y })
+        }
+      })
+      return {
+        points: validPoints,
+        colX,
+        colY,
+      }
+    }
+    const preset = SAMPLE_PRESETS.find((p) => p.id === selectedPresetId) || SAMPLE_PRESETS[0]
+    return {
+      points: preset.points,
+      colX: preset.col1,
+      colY: preset.col2,
+    }
+  }, [isCustomCsv, csvData, colX, colY, selectedPresetId])
+
+  // Normalization & OLS for active data
+  const stats = useMemo(() => {
+    const pts = activeData.points
+    const n = Math.max(1, pts.length)
+    const xs = pts.map((p) => p.x)
+    const ys = pts.map((p) => p.y)
+    const meanX = xs.reduce((a, b) => a + b, 0) / n
+    const meanY = ys.reduce((a, b) => a + b, 0) / n
+    const stdX = Math.sqrt(xs.reduce((s, x) => s + (x - meanX) ** 2, 0) / n) || 1
+    const stdY = Math.sqrt(ys.reduce((s, y) => s + (y - meanY) ** 2, 0) / n) || 1
+
+    const sxy = pts.reduce((s, p) => s + (p.x - meanX) * (p.y - meanY), 0)
+    const sxx = pts.reduce((s, p) => s + (p.x - meanX) ** 2, 0) || 1
+    const olsB1 = sxy / sxx
+    const olsB0 = meanY - olsB1 * meanX
+
+    const xn = xs.map((x) => (x - meanX) / stdX)
+    const yn = ys.map((y) => (y - meanY) / stdY)
+
+    return {
+      n,
+      meanX,
+      meanY,
+      stdX,
+      stdY,
+      olsB1,
+      olsB0,
+      xn,
+      yn,
+    }
+  }, [activeData.points])
+
+  // Landscape coordinate bounds
+  const B1_MIN = Number((stats.olsB1 - 1.8).toFixed(1))
+  const B1_MAX = Number((stats.olsB1 + 1.8).toFixed(1))
+  const B0_MIN = Number((stats.olsB0 - 5.0).toFixed(1))
+  const B0_MAX = Number((stats.olsB0 + 5.0).toFixed(1))
+
+  // MSE Function
+  const calcMSE = useCallback(
+    (b1Val, b0Val) => {
+      const pts = activeData.points
+      if (!pts || pts.length === 0) return 0
+      let s = 0
+      for (const p of pts) {
+        const e = b1Val * p.x + b0Val - p.y
+        s += e * e
+      }
+      return s / pts.length
+    },
+    [activeData.points],
+  )
+
+  // Gradient computation in normalized coordinates
+  const calcGradNorm = useCallback(
+    (mn, bn) => {
+      let dm = 0
+      let db = 0
+      const n = stats.n
+      for (let i = 0; i < n; i++) {
+        const e = mn * stats.xn[i] + bn - stats.yn[i]
+        dm += e * stats.xn[i]
+        db += e
+      }
+      return [(2 * dm) / n, (2 * db) / n]
+    },
+    [stats],
+  )
+
+  const realFromNorm = useCallback(
+    (mn, bn) => {
+      const b1 = (mn * stats.stdY) / stats.stdX
+      const b0 = stats.meanY - b1 * stats.meanX + bn * stats.stdY
+      return [b1, b0]
+    },
+    [stats],
+  )
+
+  const normFromReal = useCallback(
+    (b1, b0) => {
+      const mn = (b1 * stats.stdX) / stats.stdY
+      const bn = (b0 - stats.meanY + b1 * stats.meanX) / stats.stdY
+      return [mn, bn]
+    },
+    [stats],
+  )
+
+  // Learning Rate
   const [learningRate, setLearningRate] = useState(0.3)
 
   // Simulation State
+  const initialPos = useMemo(() => {
+    return [
+      Number((stats.olsB1 - 1.2).toFixed(2)),
+      Number((stats.olsB0 + 3.2).toFixed(1)),
+    ]
+  }, [stats.olsB1, stats.olsB0])
+
   const [stepIndex, setStepIndex] = useState(0)
-  const [pos, setPos] = useState(() => [
-    START_POSITIONS.topLeft.b1,
-    START_POSITIONS.topLeft.b0,
-  ])
-  const [path, setPath] = useState(() => [
-    [START_POSITIONS.topLeft.b1, START_POSITIONS.topLeft.b0],
-  ])
+  const [pos, setPos] = useState(initialPos)
+  const [path, setPath] = useState([initialPos])
   const [isPlaying, setIsPlaying] = useState(false)
   const [speed, setSpeed] = useState(1)
 
-  // Auxiliary toggles
-  const [showGradientArrow, setShowGradientArrow] = useState(true)
-  const [showPathTrail, setShowPathTrail] = useState(true)
-  const [showStarOptimum, setShowStarOptimum] = useState(true)
+  // Reset to initial
+  const resetToInit = useCallback(() => {
+    setPos(initialPos)
+    setPath([initialPos])
+    setStepIndex(0)
+    setIsPlaying(false)
+  }, [initialPos])
 
-  // Current Parameters & Loss
-  const [b1, b0] = pos
-  const currentMSE = useMemo(() => mseReal(b1, b0), [b1, b0])
-  const olsMSE = useMemo(() => mseReal(OLS_B1, OLS_B0), [])
-
-  // Gradient at current position
-  const [mn, bn] = useMemo(() => normFromReal(b1, b0), [b1, b0])
-  const [dm, db] = useMemo(() => gradNorm(mn, bn), [mn, bn])
-  const gradMag = Math.hypot(dm, db)
-
-  // Reset to chosen start position
-  const resetToStart = useCallback(
-    (newStartKey = startKey) => {
-      const cfg = START_POSITIONS[newStartKey]
-      setStartKey(newStartKey)
-      setStepIndex(0)
-      setPos([cfg.b1, cfg.b0])
-      setPath([[cfg.b1, cfg.b0]])
-      setIsPlaying(false)
-    },
-    [startKey],
-  )
-
-  // Perform single GD step
+  // Single step descent
   const stepDescent = useCallback(
-    (currentB1, currentB0, curPath) => {
-      const [curMn, curBn] = normFromReal(currentB1, currentB0)
-      const [curDm, curDb] = gradNorm(curMn, curBn)
+    (curB1, curB0, curPath) => {
+      const [curMn, curBn] = normFromReal(curB1, curB0)
+      const [curDm, curDb] = calcGradNorm(curMn, curBn)
       const nextMn = curMn - learningRate * curDm
       const nextBn = curBn - learningRate * curDb
       const [nextB1, nextB0] = realFromNorm(nextMn, nextBn)
-      const clampedB1 = Math.max(B1_MIN + 0.1, Math.min(B1_MAX - 0.1, nextB1))
-      const clampedB0 = Math.max(B0_MIN + 0.1, Math.min(B0_MAX - 0.1, nextB0))
       return {
-        nextB1: clampedB1,
-        nextB0: clampedB0,
-        nextPath: [...curPath, [clampedB1, clampedB0]],
+        nextB1,
+        nextB0,
+        nextPath: [...curPath, [nextB1, nextB0]],
       }
     },
-    [learningRate],
+    [learningRate, normFromReal, calcGradNorm, realFromNorm],
   )
 
-  // Jump to specific step
+  // Step transitions
   const handleJumpStep = useCallback(
     (targetIdx) => {
       setStepIndex(targetIdx)
-      const cfg = START_POSITIONS[startKey]
-
       if (targetIdx <= 2) {
-        setPos([cfg.b1, cfg.b0])
-        setPath([[cfg.b1, cfg.b0]])
+        setPos(initialPos)
+        setPath([initialPos])
       } else if (targetIdx === 3 || targetIdx === 4) {
-        const { nextB1, nextB0, nextPath } = stepDescent(cfg.b1, cfg.b0, [[cfg.b1, cfg.b0]])
+        const { nextB1, nextB0, nextPath } = stepDescent(initialPos[0], initialPos[1], [initialPos])
         setPos([nextB1, nextB0])
         setPath(nextPath)
       } else if (targetIdx === 5) {
-        let curB1 = cfg.b1
-        let curB0 = cfg.b0
-        let p = [[curB1, curB0]]
+        let curB1 = initialPos[0]
+        let curB0 = initialPos[1]
+        let p = [initialPos]
         for (let i = 0; i < 4; i++) {
           const res = stepDescent(curB1, curB0, p)
           curB1 = res.nextB1
@@ -274,10 +322,10 @@ function TeacherGradientDescent() {
         setPath(p)
       } else if (targetIdx === 6) {
         if (learningRate >= 0.9) {
-          // In overshoot mode, show the oscillating path!
-          let curB1 = cfg.b1
-          let curB0 = cfg.b0
-          let p = [[curB1, curB0]]
+          // Overshooting oscillation
+          let curB1 = initialPos[0]
+          let curB0 = initialPos[1]
+          let p = [initialPos]
           for (let i = 0; i < 8; i++) {
             const res = stepDescent(curB1, curB0, p)
             curB1 = res.nextB1
@@ -287,38 +335,28 @@ function TeacherGradientDescent() {
           setPos([curB1, curB0])
           setPath(p)
         } else {
-          // Converged
-          let curB1 = cfg.b1
-          let curB0 = cfg.b0
-          let p = [[curB1, curB0]]
-          for (let i = 0; i < 12; i++) {
-            const res = stepDescent(curB1, curB0, p)
-            curB1 = res.nextB1
-            curB0 = res.nextB0
-            p = res.nextPath
-            if (Math.hypot(res.nextB1 - OLS_B1, res.nextB0 - OLS_B0) < 0.05) break
-          }
-          setPos([Number(OLS_B1.toFixed(3)), Number(OLS_B0.toFixed(3))])
-          setPath([...p, [OLS_B1, OLS_B0]])
+          // Convergence to star
+          setPos([Number(stats.olsB1.toFixed(3)), Number(stats.olsB0.toFixed(3))])
+          setPath([...path, [stats.olsB1, stats.olsB0]])
         }
       }
     },
-    [startKey, learningRate, stepDescent],
+    [initialPos, learningRate, stats.olsB1, stats.olsB0, stepDescent, path],
   )
 
-  const handleNext = useCallback(() => {
+  const handleNext = () => {
     if (stepIndex < GD_STEPS.length - 1) {
       handleJumpStep(stepIndex + 1)
     } else {
       setIsPlaying(false)
     }
-  }, [stepIndex, handleJumpStep])
+  }
 
-  const handlePrev = useCallback(() => {
+  const handlePrev = () => {
     if (stepIndex > 0) {
       handleJumpStep(stepIndex - 1)
     }
-  }, [stepIndex, handleJumpStep])
+  }
 
   // Autoplay
   const timerRef = useRef(null)
@@ -327,8 +365,7 @@ function TeacherGradientDescent() {
       if (timerRef.current) clearInterval(timerRef.current)
       return undefined
     }
-
-    const intervalMs = Math.round(1800 / speed)
+    const intervalMs = Math.round(1600 / speed)
     timerRef.current = setInterval(() => {
       setStepIndex((cur) => {
         if (cur >= GD_STEPS.length - 1) {
@@ -346,388 +383,343 @@ function TeacherGradientDescent() {
     }
   }, [isPlaying, speed, handleJumpStep])
 
-  const curStep = GD_STEPS[stepIndex]
+  // CSV Load Handler
+  const handleCsvLoaded = (parsedResult) => {
+    setCsvData(parsedResult)
+    setIsCustomCsv(true)
+    const numCols = parsedResult.numericColumns
+    setColX(numCols[0] || parsedResult.headers[0])
+    setColY(numCols[1] || numCols[0] || parsedResult.headers[1])
+    resetToInit()
+  }
 
-  // Detect overshooting
-  const isOvershooting = learningRate >= 0.9
+  const handleResetToSample = () => {
+    setIsCustomCsv(false)
+    setCsvData(null)
+    setSelectedPresetId('housing')
+    resetToInit()
+  }
 
-  // Dynamic Metrics for Explanation Panel
-  const panelMetrics = [
-    { label: 'Slope (b₁)', value: b1.toFixed(3) },
-    { label: 'Intercept (b₀)', value: b0.toFixed(3) },
-    {
-      label: 'Loss (MSE)',
-      value: currentMSE.toFixed(3),
-      status: currentMSE - olsMSE < 0.05 ? 'good' : 'rust',
-    },
-    { label: 'Learning Rate (α)', value: learningRate.toFixed(2) },
-    { label: 'Gradient Norm', value: gradMag.toFixed(2) },
-    {
-      label: 'Optimal OLS MSE',
-      value: olsMSE.toFixed(3),
-    },
-  ]
+  // Current Parameters & Metrics
+  const [b1, b0] = pos
+  const currentMSE = useMemo(() => calcMSE(b1, b0), [calcMSE, b1, b0])
+  const olsMSE = useMemo(() => calcMSE(stats.olsB1, stats.olsB0), [calcMSE, stats])
 
-  // Controls Elements
-  const controlsElement = (
-    <>
-      <div className="tw-ctrl-group">
-        <span className="tw-ctrl-label">Starting Point:</span>
-        <select
-          className="tw-select"
-          value={startKey}
-          onChange={(e) => resetToStart(e.target.value)}
-        >
-          {Object.entries(START_POSITIONS).map(([key, item]) => (
-            <option key={key} value={key}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-      </div>
+  const [mn, bn] = useMemo(() => normFromReal(b1, b0), [normFromReal, b1, b0])
+  const [dm, db] = useMemo(() => calcGradNorm(mn, bn), [calcGradNorm, mn, bn])
 
-      <div className="tw-divider" />
+  // Landscape scales
+  const W = 460
+  const H = 340
+  const PAD = { l: 48, r: 20, t: 16, b: 38 }
+  const plotW = W - PAD.l - PAD.r
+  const plotH = H - PAD.t - PAD.b
 
-      {/* Learning Rate Demonstration Presets (Section 15) */}
-      <div className="tw-ctrl-group">
-        <span className="tw-ctrl-label">Learning Rate Demo:</span>
-        <div className="tw-lr-presets-bar">
-          {LR_PRESETS.map((p) => (
-            <button
-              key={p.lr}
-              type="button"
-              className={`tw-lr-preset-btn ${learningRate === p.lr ? 'active' : ''}`}
-              onClick={() => {
-                setLearningRate(p.lr)
-                resetToStart(startKey)
-              }}
-              title={p.desc}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="tw-divider" />
-
-      <div className="tw-ctrl-group">
-        <span className="tw-ctrl-label">α Slider:</span>
-        <input
-          type="range"
-          min="0.02"
-          max="1.1"
-          step="0.02"
-          value={learningRate}
-          onChange={(e) => {
-            setLearningRate(Number(e.target.value))
-            resetToStart(startKey)
-          }}
-          style={{ width: 100, accentColor: 'var(--blue)' }}
-        />
-        <b>{learningRate.toFixed(2)}</b>
-      </div>
-    </>
+  const px = useCallback(
+    (b1Val) => PAD.l + ((b1Val - B1_MIN) / (B1_MAX - B1_MIN)) * plotW,
+    [B1_MIN, B1_MAX, PAD.l, plotW],
+  )
+  const py = useCallback(
+    (b0Val) => PAD.t + plotH - ((b0Val - B0_MIN) / (B0_MAX - B0_MIN)) * plotH,
+    [B0_MIN, B0_MAX, PAD.t, plotH],
   )
 
-  // Gradient vector coordinates for arrow
-  // Step 2 & 3 show gradient arrows
-  const arrowScale = 22
+  // Gradient arrows
+  const arrowScale = 20
   const gradArrowX = px(b1) + dm * arrowScale
   const gradArrowY = py(b0) - db * arrowScale
   const updateArrowX = px(b1) - dm * arrowScale * learningRate * 2.5
   const updateArrowY = py(b0) + db * arrowScale * learningRate * 2.5
 
   // Mini Chart mapping functions
-  const MINI = { W: 240, H: 200, l: 30, r: 12, t: 14, b: 28 }
+  const pts = activeData.points
+  const xs = pts.map((p) => p.x)
+  const ys = pts.map((p) => p.y)
+  const minX = Math.min(...xs, 0)
+  const maxX = Math.max(...xs, 10)
+  const minY = Math.min(...ys, 0)
+  const maxY = Math.max(...ys, 10)
+
+  const MINI = { W: 210, H: 180, l: 28, r: 12, t: 14, b: 26 }
   const miniPw = MINI.W - MINI.l - MINI.r
   const miniPh = MINI.H - MINI.t - MINI.b
-  const mx = (x) => MINI.l + (x / 10) * miniPw
-  const my = (y) => MINI.t + miniPh - (y / 11) * miniPh
+  const mx = (xVal) => MINI.l + ((xVal - minX) / (maxX - minX)) * miniPw
+  const my = (yVal) => MINI.t + miniPh - ((yVal - minY) / (maxY - minY)) * miniPh
 
-  // Visualization Area
-  const visualizationElement = (
-    <div className="tw-gd-vis-layout">
-      {/* 2D Error Surface Heatmap */}
-      <div>
-        <div className="tw-vis-card-header" style={{ marginBottom: 8 }}>
-          <div className="tw-vis-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            Error Surface: J(b₁, b₀)
-            {isOvershooting && (
-              <span className="tw-overshoot-badge">⚠️ Overshooting Active</span>
-            )}
-          </div>
-          <div className="tw-vis-toggles">
-            <label className="tw-checkbox-label">
-              <input
-                type="checkbox"
-                checked={showGradientArrow}
-                onChange={(e) => setShowGradientArrow(e.target.checked)}
-              />
-              Gradient Vector
-            </label>
-            <label className="tw-checkbox-label">
-              <input
-                type="checkbox"
-                checked={showPathTrail}
-                onChange={(e) => setShowPathTrail(e.target.checked)}
-              />
-              Descent Path
-            </label>
-            <label className="tw-checkbox-label">
-              <input
-                type="checkbox"
-                checked={showStarOptimum}
-                onChange={(e) => setShowStarOptimum(e.target.checked)}
-              />
-              Target Minimum ★
-            </label>
-          </div>
-        </div>
-
-        <svg
-          className="tw-gd-surface-svg"
-          viewBox={`0 0 ${W} ${H}`}
-          role="img"
-          aria-label="2D error landscape heatmap with gradient descent position and vectors"
-        >
-          <defs>
-            <marker
-              id="arrow-grad"
-              viewBox="0 0 10 10"
-              refX="6"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--rust)" />
-            </marker>
-            <marker
-              id="arrow-update"
-              viewBox="0 0 10 10"
-              refX="6"
-              refY="5"
-              markerWidth="6"
-              markerHeight="6"
-              orient="auto-start-reverse"
-            >
-              <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--good)" />
-            </marker>
-          </defs>
-
-          {/* Error Heatmap Cells */}
-          {HEAT_CELLS.map((c) => (
-            <rect
-              key={c.key}
-              x={c.x.toFixed(1)}
-              y={c.y.toFixed(1)}
-              width={(cellW + 0.6).toFixed(1)}
-              height={(cellH + 0.6).toFixed(1)}
-              fill={c.fill}
-            />
-          ))}
-
-          {/* Axes */}
-          <line
-            x1={px(B1_MIN)}
-            y1={py(B0_MIN)}
-            x2={px(B1_MAX)}
-            y2={py(B0_MIN)}
-            stroke="var(--ink)"
-            strokeWidth="1"
-            opacity="0.4"
-          />
-          <line
-            x1={px(B1_MIN)}
-            y1={py(B0_MIN)}
-            x2={px(B1_MIN)}
-            y2={py(B0_MAX)}
-            stroke="var(--ink)"
-            strokeWidth="1"
-            opacity="0.4"
-          />
-
-          <text className="tw-lr-label" x={PAD.l + plotW / 2} y={H - 10} textAnchor="middle">
-            Slope (b₁)
-          </text>
-          <text
-            className="tw-lr-label"
-            x={16}
-            y={PAD.t + plotH / 2}
-            textAnchor="middle"
-            transform={`rotate(-90 16 ${PAD.t + plotH / 2})`}
-          >
-            Intercept (b₀)
-          </text>
-
-          {/* Trajectory Path */}
-          {showPathTrail && path.length > 1 && (
-            <>
-              <polyline
-                points={path.map(([pb1, pb0]) => `${px(pb1)},${py(pb0)}`).join(' ')}
-                fill="none"
-                stroke="var(--rust)"
-                strokeWidth="2.2"
-                strokeDasharray={isOvershooting ? '4 2' : 'none'}
-              />
-              {path.map(([pb1, pb0], i) => (
-                <circle
-                  key={i}
-                  cx={px(pb1)}
-                  cy={py(pb0)}
-                  r={3}
-                  fill="var(--rust)"
-                />
-              ))}
-            </>
-          )}
-
-          {/* Starting Position Ring */}
-          <circle
-            cx={px(START_POSITIONS[startKey].b1)}
-            cy={py(START_POSITIONS[startKey].b0)}
-            r={6}
-            fill="none"
-            stroke="var(--ink)"
-            strokeWidth="1.5"
-          />
-
-          {/* Global Optimum Target Star */}
-          {showStarOptimum && (
-            <polygon
-              points={starPoints(px(OLS_B1), py(OLS_B0))}
-              fill="#D9B44A"
-              stroke="var(--ink)"
-              strokeWidth="0.8"
-            />
-          )}
-
-          {/* Gradient Vectors (Step 2 and 3) */}
-          {showGradientArrow && stepIndex >= 2 && (
-            <>
-              {/* Steepest Ascent Arrow (Gradient) */}
-              <line
-                x1={px(b1)}
-                y1={py(b0)}
-                x2={gradArrowX}
-                y2={gradArrowY}
-                stroke="var(--rust)"
-                strokeWidth="2"
-                markerEnd="url(#arrow-grad)"
-              />
-              {/* Steepest Descent Step (-alpha * grad) */}
-              <line
-                x1={px(b1)}
-                y1={py(b0)}
-                x2={updateArrowX}
-                y2={updateArrowY}
-                stroke="var(--good)"
-                strokeWidth="2.5"
-                markerEnd="url(#arrow-update)"
-              />
-            </>
-          )}
-
-          {/* Current Parameter Marker */}
-          <circle
-            cx={px(b1)}
-            cy={py(b0)}
-            r={7}
-            fill="var(--blue)"
-            stroke="#fff"
-            strokeWidth="2"
-          />
-        </svg>
-
-        {/* Legend */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, fontSize: '11px', color: 'var(--muted)' }}>
-          <span>Terrain Elevation: Light = Low MSE (Valley), Dark = High MSE</span>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <span style={{ color: 'var(--rust)' }}>➔ Gradient (Uphill)</span>
-            <span style={{ color: 'var(--good)' }}>➔ Update Step (Downhill)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Mini Fit View: How parameter manifests as line */}
-      <div className="tw-gd-mini-card">
-        <h4 className="tw-gd-mini-title">Physical Model Fit</h4>
-        <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>
-          Current Line: <code>ŷ = {b1.toFixed(2)}x + {b0.toFixed(2)}</code>
-        </div>
-        <svg
-          className="tw-gd-mini-svg"
-          viewBox={`0 0 ${MINI.W} ${MINI.H}`}
-          role="img"
-          aria-label="Scatter plot and current linear regression fit line"
-        >
-          <line x1={mx(0)} y1={my(0)} x2={mx(10)} y2={my(0)} stroke="#C9C1A8" />
-          <line x1={mx(0)} y1={my(0)} x2={mx(0)} y2={my(11)} stroke="#C9C1A8" />
-          {X.map((xVal, i) => (
-            <circle key={i} cx={mx(xVal)} cy={my(Y[i])} r={3.5} fill="var(--ink)" />
-          ))}
-          {/* Target OLS line */}
-          <line
-            x1={mx(0)}
-            y1={my(OLS_B0)}
-            x2={mx(10)}
-            y2={my(OLS_B1 * 10 + OLS_B0)}
-            stroke="var(--good)"
-            strokeWidth="1.2"
-            strokeDasharray="4 3"
-          />
-          {/* Current Line */}
-          <line
-            x1={mx(0)}
-            y1={my(b0)}
-            x2={mx(10)}
-            y2={my(b1 * 10 + b0)}
-            stroke="var(--blue)"
-            strokeWidth="2.2"
-          />
-        </svg>
-
-        <div style={{ fontSize: '11px', color: 'var(--muted)', lineHeight: 1.4 }}>
-          Green dashed = OLS Target<br />
-          Solid Blue = Current Gradient Descent Hypothesis
-        </div>
-      </div>
-    </div>
-  )
+  const curStep = GD_STEPS[stepIndex]
+  const isOvershooting = learningRate >= 0.9
 
   return (
     <TeacherWorkspaceLayout
-      title="Gradient Descent"
-      subtitle="Demonstrate how an optimisation algorithm iteratively updates model parameters to minimise a loss function."
-      controls={controlsElement}
-      visualization={visualizationElement}
-      explanationPanel={
-        <TeacherExplanationPanel
-          stepNumber={stepIndex + 1}
-          totalSteps={GD_STEPS.length}
-          stepTitle={curStep.title}
-          whatIsHappening={curStep.what}
-          whyItMatters={curStep.why}
-          metrics={panelMetrics}
-          talkingPoint={curStep.talkingPoint}
+      title="Gradient Descent Playground"
+      subtitle="Demonstrate iterative loss minimization on an error landscape. Modify learning rate to see slow, smooth, or overshooting convergence."
+      datasetSelector={
+        <TeacherDatasetSelector
+          samplePresets={SAMPLE_PRESETS}
+          selectedPresetId={selectedPresetId}
+          onSelectPreset={(id) => {
+            setSelectedPresetId(id)
+            setIsCustomCsv(false)
+            resetToInit()
+          }}
+          isCustomCsv={isCustomCsv}
+          csvData={csvData}
+          onCsvLoaded={handleCsvLoaded}
+          onResetToSample={handleResetToSample}
+          col1Label="Feature (X)"
+          col2Label="Target (Y)"
+          selectedCol1={colX}
+          selectedCol2={colY}
+          onCol1Change={setColX}
+          onCol2Change={setColY}
         />
+      }
+      visualization={
+        <div className="tw-gd-vis-layout">
+          {/* Left: 2D Error Surface */}
+          <div>
+            <div className="tw-vis-card-header" style={{ marginBottom: 6 }}>
+              <div className="tw-vis-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                Error Surface: J(b₁, b₀)
+                {isOvershooting && <span className="tw-overshoot-badge">⚠️ Overshooting Active</span>}
+              </div>
+              <div style={{ fontSize: '11.5px', color: 'var(--muted)' }}>
+                ★ = Global Minimum (OLS fit)
+              </div>
+            </div>
+
+            <svg
+              className="tw-gd-surface-svg"
+              viewBox={`0 0 ${W} ${H}`}
+              role="img"
+              aria-label="Gradient descent error landscape"
+            >
+              <defs>
+                <marker
+                  id="arrow-grad"
+                  viewBox="0 0 10 10"
+                  refX="6"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--rust)" />
+                </marker>
+                <marker
+                  id="arrow-update"
+                  viewBox="0 0 10 10"
+                  refX="6"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1 L 8 5 L 0 9 z" fill="var(--good)" />
+                </marker>
+              </defs>
+
+              {/* Surface grid contour representation */}
+              <rect x={PAD.l} y={PAD.t} width={plotW} height={plotH} fill="var(--paper)" stroke="var(--line)" />
+              {Array.from({ length: 6 }).map((_, i) => (
+                <circle
+                  key={i}
+                  cx={px(stats.olsB1)}
+                  cy={py(stats.olsB0)}
+                  r={(i + 1) * 26}
+                  fill="none"
+                  stroke="var(--line)"
+                  strokeDasharray="2 3"
+                  opacity={0.8}
+                />
+              ))}
+
+              {/* Axes */}
+              <line x1={px(B1_MIN)} y1={py(B0_MIN)} x2={px(B1_MAX)} y2={py(B0_MIN)} stroke="var(--ink)" opacity="0.4" />
+              <line x1={px(B1_MIN)} y1={py(B0_MIN)} x2={px(B1_MIN)} y2={py(B0_MAX)} stroke="var(--ink)" opacity="0.4" />
+
+              <text className="tw-lr-label" x={PAD.l + plotW / 2} y={H - 10} textAnchor="middle">
+                Slope (b₁)
+              </text>
+              <text className="tw-lr-label" x={14} y={PAD.t + plotH / 2} textAnchor="middle" transform={`rotate(-90 14 ${PAD.t + plotH / 2})`}>
+                Intercept (b₀)
+              </text>
+
+              {/* Trajectory Path */}
+              {path.length > 1 && (
+                <>
+                  <polyline
+                    points={path.map(([pb1, pb0]) => `${px(pb1)},${py(pb0)}`).join(' ')}
+                    fill="none"
+                    stroke="var(--rust)"
+                    strokeWidth="2.2"
+                    strokeDasharray={isOvershooting ? '4 2' : 'none'}
+                  />
+                  {path.map(([pb1, pb0], i) => (
+                    <circle key={i} cx={px(pb1)} cy={py(pb0)} r={3} fill="var(--rust)" />
+                  ))}
+                </>
+              )}
+
+              {/* Global Optimum Star */}
+              <polygon
+                points={starPoints(px(stats.olsB1), py(stats.olsB0))}
+                fill="#D9B44A"
+                stroke="var(--ink)"
+                strokeWidth="0.8"
+              />
+
+              {/* Gradient Vectors (Step 2 & 3) */}
+              {stepIndex >= 2 && (
+                <>
+                  <line
+                    x1={px(b1)}
+                    y1={py(b0)}
+                    x2={gradArrowX}
+                    y2={gradArrowY}
+                    stroke="var(--rust)"
+                    strokeWidth="2"
+                    markerEnd="url(#arrow-grad)"
+                  />
+                  <line
+                    x1={px(b1)}
+                    y1={py(b0)}
+                    x2={updateArrowX}
+                    y2={updateArrowY}
+                    stroke="var(--good)"
+                    strokeWidth="2.5"
+                    markerEnd="url(#arrow-update)"
+                  />
+                </>
+              )}
+
+              {/* Current Position */}
+              <circle cx={px(b1)} cy={py(b0)} r={7} fill="var(--blue)" stroke="#fff" strokeWidth="2" />
+            </svg>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: '11px', color: 'var(--muted)' }}>
+              <span>Center = Minimum Error (Valley)</span>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <span style={{ color: 'var(--rust)' }}>➔ Gradient (Uphill)</span>
+                <span style={{ color: 'var(--good)' }}>➔ Step (Downhill)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Mini Fit View */}
+          <div className="tw-gd-mini-card">
+            <h5 className="tw-gd-mini-title">Physical Model Fit</h5>
+            <div style={{ fontSize: '11px', color: 'var(--muted)' }}>
+              <code>ŷ = {b1.toFixed(2)}x + {b0.toFixed(2)}</code>
+            </div>
+            <svg className="tw-gd-mini-svg" viewBox={`0 0 ${MINI.W} ${MINI.H}`}>
+              <line x1={mx(minX)} y1={my(minY)} x2={mx(maxX)} y2={my(minY)} stroke="#C9C1A8" />
+              <line x1={mx(minX)} y1={my(minY)} x2={mx(minX)} y2={my(maxY)} stroke="#C9C1A8" />
+              {activeData.points.map((p, i) => (
+                <circle key={i} cx={mx(p.x)} cy={my(p.y)} r={3.2} fill="var(--ink)" />
+              ))}
+              {/* OLS line */}
+              <line
+                x1={mx(minX)}
+                y1={my(stats.olsB1 * minX + stats.olsB0)}
+                x2={mx(maxX)}
+                y2={my(stats.olsB1 * maxX + stats.olsB0)}
+                stroke="var(--good)"
+                strokeWidth="1.2"
+                strokeDasharray="4 3"
+              />
+              {/* Current Line */}
+              <line
+                x1={mx(minX)}
+                y1={my(b1 * minX + b0)}
+                x2={mx(maxX)}
+                y2={my(b1 * maxX + b0)}
+                stroke="var(--blue)"
+                strokeWidth="2.2"
+              />
+            </svg>
+            <div style={{ fontSize: '10.5px', color: 'var(--muted)' }}>
+              Green dashed = Target<br />
+              Solid blue = Current
+            </div>
+          </div>
+        </div>
+      }
+      parameterControls={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          {/* Learning Rate Demo Presets */}
+          <div className="tw-ctrl-group">
+            <span className="tw-ctrl-label" style={{ fontWeight: 600 }}>
+              Learning Rate (α):
+            </span>
+            <div className="tw-lr-presets-bar">
+              {LR_PRESETS.map((p) => (
+                <button
+                  key={p.lr}
+                  type="button"
+                  className={`tw-lr-preset-btn ${learningRate === p.lr ? 'active' : ''}`}
+                  onClick={() => {
+                    setLearningRate(p.lr)
+                    resetToInit()
+                  }}
+                  title={p.desc}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="tw-divider" />
+
+          {/* Continuous Slider */}
+          <div className="tw-ctrl-group">
+            <span className="tw-ctrl-label">α Slider:</span>
+            <input
+              type="range"
+              min="0.02"
+              max="1.1"
+              step="0.02"
+              value={learningRate}
+              onChange={(e) => {
+                setLearningRate(Number(e.target.value))
+                resetToInit()
+              }}
+              style={{ width: 90, accentColor: 'var(--blue)' }}
+            />
+            <b>{learningRate.toFixed(2)}</b>
+          </div>
+        </div>
       }
       playbackControls={
         <TeacherPlaybackControls
-          currentStep={stepIndex}
-          totalSteps={GD_STEPS.length}
-          stepLabels={GD_STEPS.map((s) => s.label)}
           isPlaying={isPlaying}
           speed={speed}
           canPrev={stepIndex > 0}
           canNext={stepIndex < GD_STEPS.length - 1}
-          onReset={() => resetToStart()}
+          onReset={resetToInit}
           onPrev={handlePrev}
           onNext={handleNext}
           onTogglePlay={() => setIsPlaying((p) => !p)}
-          onJumpStep={handleJumpStep}
           onSpeedChange={setSpeed}
+        />
+      }
+      statusExplanation={
+        <TeacherExplanationPanel
+          stepNumber={stepIndex + 1}
+          totalSteps={GD_STEPS.length}
+          stepTitle={curStep.title}
+          shortSummary={curStep.short}
+          whatIsHappening={curStep.what}
+          whyItMatters={curStep.why}
+          metrics={[
+            { label: 'Slope', value: b1.toFixed(2) },
+            { label: 'Intercept', value: b0.toFixed(1) },
+            { label: 'MSE', value: currentMSE.toFixed(3) },
+            { label: 'Target MSE', value: olsMSE.toFixed(2) },
+            { label: 'LR (α)', value: learningRate.toFixed(2) },
+          ]}
+          talkingPoint={curStep.talkingPoint}
         />
       }
     />
