@@ -26,14 +26,14 @@ export const TOPICS = {
   'gradient-descent': {
     name: 'Gradient descent',
     ico: '⛰️',
-    blurb: 'Start anywhere and roll downhill to the lowest error.',
+    blurb: 'Watch a search path crawl down the error surface to the best line',
     objectives: [
       'Explain what the error surface shows',
-      'Predict which way a step will move the line',
-      'Recognise when descent has reached the bottom',
+      'Predict which way each step will move',
+      'Recognise when gradient descent has converged',
     ],
-    prereqs: ['Linear regression basics'],
-    time: '~10 min',
+    prereqs: ['Linear regression lesson (recommended first)', 'Basic coordinate geometry'],
+    time: '~15 min',
   },
 }
 
@@ -188,6 +188,37 @@ export const QUIZ = {
       ],
       correct: 0,
       explain: "Assignment gets recalculated every iteration from the current centre positions, so if the distances shift, a point's group can shift too. Its own coordinates never move, only its group label can.",
+    },
+  ],
+  'gradient-descent': [
+    {
+      prompt: 'Which way does each step move the slope and intercept?',
+      opts: ['Towards lower error', 'Towards higher error', 'Randomly'],
+      correct: 0,
+      explain:
+        'Each step measures which direction makes the error grow fastest, then moves the opposite way. That is why the path crawls downhill on the error surface.',
+    },
+    {
+      prompt: 'What does the gold star on the error surface mark?',
+      opts: [
+        'The best slope and intercept, the same answer OLS computes directly',
+        'The starting point',
+        'The largest error',
+      ],
+      correct: 0,
+      explain:
+        'The star sits at the lowest point of the surface. OLS jumps straight there with a formula, while gradient descent walks towards it one step at a time.',
+    },
+    {
+      prompt: 'What shows that gradient descent has converged?',
+      opts: [
+        'The error stops changing noticeably between steps',
+        'The line passes through every point',
+        'The learning rate reaches zero',
+      ],
+      correct: 0,
+      explain:
+        'Near the bottom the surface is nearly flat, so each step barely changes the error. The learning rate stays fixed, and the line rarely passes through every point.',
     },
   ],
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import './Layout.css'
 
 function getInitialTheme() {
@@ -9,6 +9,17 @@ function getInitialTheme() {
 
 function Layout() {
   const [theme, setTheme] = useState(getInitialTheme)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const isHome = location.pathname === '/'
+
+  const goBack = () => {
+    if (location.key === 'default') {
+      navigate('/')
+    } else {
+      navigate(-1)
+    }
+  }
 
   useEffect(() => {
     if (theme) {
@@ -44,6 +55,9 @@ function Layout() {
             <NavLink to="/topic/k-means" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               K-means
             </NavLink>
+            <NavLink to="/topic/gradient-descent" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              Gradient descent
+            </NavLink>
             <NavLink to="/teacher" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               Teacher mode
             </NavLink>
@@ -53,6 +67,14 @@ function Layout() {
           </button>
         </div>
       </header>
+
+      {!isHome && (
+        <div className="container back-bar">
+          <button type="button" className="back-button" onClick={goBack}>
+            Back
+          </button>
+        </div>
+      )}
 
       <main className="site-main container">
         <Outlet />

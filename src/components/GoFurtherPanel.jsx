@@ -38,6 +38,26 @@ const LINKS = {
     },
     COLAB,
   ],
+  gradientDescent: [
+    {
+      label: 'Real code',
+      title: 'scikit-learn: Stochastic Gradient Descent',
+      desc: 'The official guide to gradient descent in practice, including why it is sensitive to feature scaling',
+      href: 'https://scikit-learn.org/stable/modules/sgd.html',
+    },
+    {
+      label: 'Another angle',
+      title: 'Google Machine Learning Crash Course',
+      desc: 'Free course whose Linear Regression module covers loss, gradient descent and tuning, with interactive exercises',
+      href: 'https://developers.google.com/machine-learning/crash-course',
+    },
+    {
+      label: 'Open playground',
+      title: 'Start a blank notebook in Colab',
+      desc: 'Free-form space to try the code yourself, no setup required',
+      href: 'https://colab.research.google.com',
+    },
+  ],
 }
 
 function GoFurtherPanel({ topic }) {

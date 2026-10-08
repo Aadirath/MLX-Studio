@@ -158,6 +158,28 @@ function CentroidMarks({ centroids }) {
   ))
 }
 
+function IterationNav({ current, visited, onJump }) {
+  return (
+    <div className="kmeans-iternav">
+      <p className="stageNavTitle">Jump to iteration</p>
+      <ol className="stageList">
+        {Array.from({ length: MAX_ITERS + 1 }, (_, i) => (
+          <li key={i}>
+            <button
+              type="button"
+              className={`stageNavItem${i === current ? ' active' : ''}${i !== current && visited.includes(i) ? ' visited' : ''}`}
+              aria-current={i === current ? 'step' : undefined}
+              onClick={() => onJump(i)}
+            >
+              Iteration {i}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+  )
+}
+
 function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   const [stage, setStage] = useState('table')
   const [k, setK] = useState(null)
@@ -169,6 +191,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   const [awaitingGuess, setAwaitingGuess] = useState(false)
   const [focusIdx, setFocusIdx] = useState(null)
   const [reflectPick, setReflectPick] = useState(null)
+  const [visited, setVisited] = useState([0])
 
   const simRef = useRef(sim)
   const timerRef = useRef(null)
@@ -198,6 +221,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
     const fresh = makeInitialSim(k)
     simRef.current = fresh
     setSim(fresh)
+    setVisited([0])
     setAnnotation({
       html: 'Press "Step forward" to begin. Watch which point you are asked to predict for.',
       kind: null,
@@ -214,7 +238,28 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
     simRef.current = result.sim
     setSim(result.sim)
     setAnnotation(result.annotation)
+    setVisited((v) => (v.includes(result.sim.iter) ? v : [...v, result.sim.iter]))
     return result.sim.converged
+  }
+
+  function handleJump(target) {
+    clearTimeout(timerRef.current)
+    setRunning(false)
+    setAwaitingGuess(false)
+    setFocusIdx(null)
+    setReflectPick(null)
+
+    let next = makeInitialSim(k)
+    let note = { html: 'Press "Step forward" to begin.', kind: null }
+    for (let i = 0; i < target; i += 1) {
+      const result = computeStep(next, null, null)
+      next = result.sim
+      note = result.annotation
+    }
+    simRef.current = next
+    setSim(next)
+    setAnnotation(note)
+    setVisited((v) => (v.includes(target) ? v : [...v, target]))
   }
 
   function handleStepClick() {
@@ -250,6 +295,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
     const fresh = makeInitialSim(k)
     simRef.current = fresh
     setSim(fresh)
+    setVisited([0])
     setRunning(false)
     setAwaitingGuess(false)
     setFocusIdx(null)
@@ -443,7 +489,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
 
   // ---------- stage: stepping (main simulation) ----------
   return (
-    <div className="kmeans">
+    <div className="kmeans kmeans--with-nav">
       <div className="kmeans-controls">
         <p className="note">Dataset: preset, fixed for this prototype.</p>
         {!awaitingGuess ? (
@@ -559,6 +605,8 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
           </div>
         )}
       </div>
+
+      <IterationNav current={sim.iter} visited={visited} onJump={handleJump} />
     </div>
   )
 }
