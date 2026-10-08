@@ -1,5 +1,16 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import GoFurtherPanel from './GoFurtherPanel.jsx'
+import { useSessionState } from '../hooks/useSessionState.js'
+import {
+  MAX_FILE_BYTES,
+  MAX_POINTS,
+  MIN_POINTS,
+  computeBounds,
+  countDistinct,
+  parseTwoColumnCsv,
+  seedCentroids,
+  validatePoints,
+} from './kmeansData.js'
 import './KMeans.css'
 
 const POINTS = [
@@ -21,26 +32,26 @@ const POINTS = [
   [7, 6.3],
 ]
 
-// K = 3 deliberately puts two starting centres inside the same bottom-left
-// group, so the learner can see a real group get sliced into two pieces.
-const START_CENTROIDS_BY_K = {
-  2: [
-    [1.5, 1.5],
-    [3.8, 3.5],
-  ],
-  3: [
-    [1.3, 1.3],
-    [2.8, 2.6],
-    [7.5, 7.2],
-  ],
-}
+const COLOR_NAMES = ['Blue', 'Rust', 'Green', 'Purple']
+const COLORS = ['var(--blue)', 'var(--rust)', 'var(--good)', '#7a4f9a']
+const SHAPES = ['circle', 'square', 'triangle', 'plus']
+const K_OPTIONS = [2, 3, 4]
 
-const COLOR_NAMES = ['Blue', 'Rust', 'Green']
-const COLORS = ['var(--blue)', 'var(--rust)', 'var(--good)']
-
-const MAX_ITERS = 6
+const MAX_ITERS = 10
 const CONVERGENCE_EPS = 0.01
 const RUN_DELAY_MS = 700
+
+const EXAMPLE_BOUNDS = { xMin: 0, xMax: 10, yMin: 0, yMax: 10 }
+
+const STAGE_KEYS = ['table', 'group', 'centres', 'distance', 'stepping']
+
+function isPointList(v) {
+  return (
+    Array.isArray(v) &&
+    v.length <= MAX_POINTS &&
+    v.every((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite))
+  )
+}
 
 function dist(a, b) {
   return Math.hypot(a[0] - b[0], a[1] - b[1])
@@ -55,24 +66,28 @@ function makeScale(xMin, xMax, yMin, yMax, padL, padR, padT, padB, W, H) {
   }
 }
 
-const SCALE = makeScale(0, 10, 0, 10, 44, 16, 14, 36, 560, 340)
+function fmtTick(v) {
+  return String(Number(v.toPrecision(3)))
+}
 
-function makeInitialSim(k) {
+function makeInitialSim(points, k, isExample) {
   return {
-    centroids: START_CENTROIDS_BY_K[k].map((c) => c.slice()),
-    assign: POINTS.map(() => null),
+    centroids: seedCentroids(points, k, isExample),
+    assign: points.map(() => null),
     iter: 0,
     converged: false,
+    limit: false,
+    done: false,
   }
 }
 
-function focusIndexForIter(iter) {
-  return (iter * 5 + 3) % POINTS.length
+function focusIndexForIter(iter, n) {
+  return (iter * 5 + 3) % n
 }
 
-function computeStep(sim, guess, focusIdx) {
+function computeStep(points, sim, guess, focusIdx) {
   const centroids = sim.centroids.map((c) => c.slice())
-  const newAssign = POINTS.map((p) => {
+  const newAssign = points.map((p) => {
     let best = 0
     let bestD = Infinity
     centroids.forEach((c, i) => {
@@ -85,13 +100,14 @@ function computeStep(sim, guess, focusIdx) {
     return best
   })
 
-  const groups = centroids.map((_, i) => POINTS.filter((_, idx) => newAssign[idx] === i))
+  const groups = centroids.map((_, i) => points.filter((_, idx) => newAssign[idx] === i))
   const means = groups.map((g, i) =>
     g.length ? [g.reduce((a, p) => a + p[0], 0) / g.length, g.reduce((a, p) => a + p[1], 0) / g.length] : centroids[i],
   )
   const moved = means.reduce((s, mn, i) => s + dist(mn, centroids[i]), 0)
   const nextIter = sim.iter + 1
-  const converged = moved < CONVERGENCE_EPS || nextIter >= MAX_ITERS
+  const converged = moved < CONVERGENCE_EPS
+  const limit = !converged && nextIter >= MAX_ITERS
   const sizes = groups.map((g) => g.length)
 
   let kind = null
@@ -104,22 +120,94 @@ function computeStep(sim, guess, focusIdx) {
 
   let html = `${prefix}<span class="tag">Iteration ${nextIter}</span>Points reassigned to their nearest centre (${sizes.join(', ')} points respectively). Each centre moved to the average position of its own group.`
   if (converged) html += ' Centres have stopped moving. That is convergence.'
+  if (limit) html += ` Stopped at the ${MAX_ITERS} iteration limit, the centres were still moving.`
 
   return {
-    sim: { centroids: means, assign: newAssign, iter: nextIter, converged },
+    sim: { centroids: means, assign: newAssign, iter: nextIter, converged, limit, done: converged || limit },
     annotation: { html, kind },
   }
 }
 
-function ChartFrame({ children }) {
+// Replays the algorithm from the seeded centres, with no animation.
+function replaySim(points, k, isExample, target) {
+  let sim = makeInitialSim(points, k, isExample)
+  let annotation = { html: 'Press "Step forward" to begin.', kind: null }
+  for (let i = 0; i < target; i += 1) {
+    const result = computeStep(points, sim, null, null)
+    sim = result.sim
+    annotation = result.annotation
+  }
+  return { sim, annotation }
+}
+
+function Marker({ shape, cx, cy, color, r = 5 }) {
+  if (shape === 'square') {
+    return <rect x={cx - r} y={cy - r} width={2 * r} height={2 * r} fill={color} />
+  }
+  if (shape === 'triangle') {
+    return <polygon points={`${cx},${cy - r - 1.5} ${cx - r - 1.5},${cy + r} ${cx + r + 1.5},${cy + r}`} fill={color} />
+  }
+  if (shape === 'plus') {
+    return (
+      <g stroke={color} strokeWidth="2.6" strokeLinecap="round">
+        <line x1={cx - r - 1} y1={cy} x2={cx + r + 1} y2={cy} />
+        <line x1={cx} y1={cy - r - 1} x2={cx} y2={cy + r + 1} />
+      </g>
+    )
+  }
+  return <circle cx={cx} cy={cy} r={r} fill={color} />
+}
+
+function MarkerIcon({ index }) {
+  return (
+    <svg className="markerIcon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+      <Marker shape={SHAPES[index]} cx={8} cy={8} color={COLORS[index]} r={4.5} />
+    </svg>
+  )
+}
+
+function Legend({ k }) {
+  return (
+    <div className="legend" aria-label="Chart legend">
+      {Array.from({ length: k }, (_, i) => (
+        <span className="legendItem" key={i}>
+          <MarkerIcon index={i} />
+          Cluster {i + 1} ({SHAPES[i]})
+        </span>
+      ))}
+      <span className="legendItem">
+        <svg className="markerIcon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <rect x="4" y="4" width="8" height="8" fill="none" stroke="var(--ink)" strokeWidth="2" transform="rotate(45 8 8)" />
+        </svg>
+        Centre (hollow diamond)
+      </span>
+    </div>
+  )
+}
+
+function ChartFrame({ scale, bounds, children }) {
+  const { px, py } = scale
+  const midY = py((bounds.yMin + bounds.yMax) / 2)
   return (
     <svg viewBox="0 0 560 340" role="img" aria-label="Interactive k-means clustering chart">
-      <line x1={SCALE.px(0)} y1={SCALE.py(0)} x2={SCALE.px(0)} y2={SCALE.py(10)} stroke="#C9C1A8" />
-      <line x1={SCALE.px(0)} y1={SCALE.py(0)} x2={SCALE.px(10)} y2={SCALE.py(0)} stroke="#C9C1A8" />
-      <text className="axLbl" x={SCALE.px(5)} y="332" textAnchor="middle">
+      <line x1={px(bounds.xMin)} y1={py(bounds.yMin)} x2={px(bounds.xMin)} y2={py(bounds.yMax)} stroke="#C9C1A8" />
+      <line x1={px(bounds.xMin)} y1={py(bounds.yMin)} x2={px(bounds.xMax)} y2={py(bounds.yMin)} stroke="#C9C1A8" />
+      <text className="axLbl" x={px(bounds.xMin)} y={py(bounds.yMin) + 13} textAnchor="start">
+        {fmtTick(bounds.xMin)}
+      </text>
+      <text className="axLbl" x={px(bounds.xMax)} y={py(bounds.yMin) + 13} textAnchor="end">
+        {fmtTick(bounds.xMax)}
+      </text>
+      <text className="axLbl" x={px(bounds.xMin) - 5} y={py(bounds.yMin)} textAnchor="end">
+        {fmtTick(bounds.yMin)}
+      </text>
+      <text className="axLbl" x={px(bounds.xMin) - 5} y={py(bounds.yMax) + 8} textAnchor="end">
+        {fmtTick(bounds.yMax)}
+      </text>
+      <text className="axLbl" x={(px(bounds.xMin) + px(bounds.xMax)) / 2} y="332" textAnchor="middle">
         x
       </text>
-      <text className="axLbl" x="12" y={SCALE.py(5)} textAnchor="middle" transform={`rotate(-90 12 ${SCALE.py(5)})`}>
+      <text className="axLbl" x="12" y={midY} textAnchor="middle" transform={`rotate(-90 12 ${midY})`}>
         y
       </text>
       {children}
@@ -127,35 +215,44 @@ function ChartFrame({ children }) {
   )
 }
 
-function PointDots({ assign, highlightIdx }) {
-  return POINTS.map((p, i) => {
+function PointDots({ points, scale, assign, highlightIdx }) {
+  return points.map((p, i) => {
     const cIdx = assign[i]
-    const color = cIdx === null || cIdx === undefined ? '#9C9584' : COLORS[cIdx]
+    const assigned = cIdx !== null && cIdx !== undefined
+    const cx = scale.px(p[0])
+    const cy = scale.py(p[1])
     return (
       <g key={`point-${i}`}>
-        {highlightIdx === i && (
-          <circle cx={SCALE.px(p[0])} cy={SCALE.py(p[1])} r="10" fill="none" stroke="var(--ink)" strokeWidth="1.5" />
-        )}
-        <circle cx={SCALE.px(p[0])} cy={SCALE.py(p[1])} r="5" fill={color} />
+        {highlightIdx === i && <circle cx={cx} cy={cy} r="11" fill="none" stroke="var(--ink)" strokeWidth="1.5" />}
+        <Marker shape={assigned ? SHAPES[cIdx] : 'circle'} cx={cx} cy={cy} color={assigned ? COLORS[cIdx] : '#9C9584'} />
       </g>
     )
   })
 }
 
-function CentroidMarks({ centroids }) {
-  return centroids.map((c, i) => (
-    <rect
-      key={`centroid-${i}`}
-      x={SCALE.px(c[0]) - 6}
-      y={SCALE.py(c[1]) - 6}
-      width="12"
-      height="12"
-      fill="none"
-      stroke={COLORS[i]}
-      strokeWidth="2.5"
-      transform={`rotate(45 ${SCALE.px(c[0])} ${SCALE.py(c[1])})`}
-    />
-  ))
+function CentroidMarks({ scale, centroids }) {
+  return centroids.map((c, i) => {
+    const cx = scale.px(c[0])
+    const cy = scale.py(c[1])
+    return (
+      <g key={`centroid-${i}`}>
+        <rect
+          x={cx - 8}
+          y={cy - 8}
+          width="16"
+          height="16"
+          fill="var(--paper-card)"
+          fillOpacity="0.85"
+          stroke={COLORS[i]}
+          strokeWidth="2.5"
+          transform={`rotate(45 ${cx} ${cy})`}
+        />
+        <text x={cx} y={cy + 3.5} textAnchor="middle" fontSize="10" fontWeight="700" fill={COLORS[i]} pointerEvents="none">
+          {i + 1}
+        </text>
+      </g>
+    )
+  })
 }
 
 function IterationNav({ current, visited, onJump }) {
@@ -181,20 +278,56 @@ function IterationNav({ current, visited, onJump }) {
 }
 
 function KMeansStages({ onStepsChange, onStateDescription } = {}) {
-  const [stage, setStage] = useState('table')
-  const [k, setK] = useState(null)
-  const [groupNote, setGroupNote] = useState(false)
+  const [stage, setStage] = useSessionState('mlx.k-means.stage', 'table', (v) => STAGE_KEYS.includes(v))
+  const [k, setK] = useSessionState('mlx.k-means.k', 2, (v) => K_OPTIONS.includes(v))
 
-  const [sim, setSim] = useState(() => makeInitialSim(2))
+  // Data source: the built-in example, or points the learner supplied.
+  const [storedSource, setSource] = useSessionState(
+    'mlx.k-means.source',
+    'example',
+    (v) => v === 'example' || v === 'custom',
+  )
+  const [customPoints, setCustomPoints] = useSessionState('mlx.k-means.customPoints', [], isPointList)
+  const [savedIter, setSavedIter] = useSessionState(
+    'mlx.k-means.iter',
+    0,
+    (v) => Number.isInteger(v) && v >= 0 && v <= MAX_ITERS,
+  )
+  // Saved custom data only counts if it still passes validation.
+  const source = storedSource === 'custom' && validatePoints(customPoints, k) === null ? 'custom' : 'example'
+  const isExample = source === 'example'
+  const points = isExample ? POINTS : customPoints
+
+  const [editing, setEditing] = useState(!isExample)
+  const [draftRows, setDraftRows] = useState(() =>
+    isExample
+      ? Array.from({ length: MIN_POINTS }, () => ({ x: '', y: '' }))
+      : customPoints.map((p) => ({ x: String(p[0]), y: String(p[1]) })),
+  )
+  const [draftDirty, setDraftDirty] = useState(false)
+  const [dataError, setDataError] = useState('')
+  const [dataInfo, setDataInfo] = useState('')
+
+  // Restore by replaying from the seeded centres up to the saved iteration.
+  const [restored] = useState(() => replaySim(points, k, isExample, savedIter))
+  const [sim, setSim] = useState(restored.sim)
   const [running, setRunning] = useState(false)
-  const [annotation, setAnnotation] = useState(null)
+  const [annotation, setAnnotation] = useState(restored.annotation)
   const [awaitingGuess, setAwaitingGuess] = useState(false)
   const [focusIdx, setFocusIdx] = useState(null)
   const [reflectPick, setReflectPick] = useState(null)
-  const [visited, setVisited] = useState([0])
+  const [visited, setVisited] = useState(() => Array.from({ length: savedIter + 1 }, (_, i) => i))
 
   const simRef = useRef(sim)
   const timerRef = useRef(null)
+  const fileRef = useRef(null)
+
+  const distinctCount = useMemo(() => countDistinct(points), [points])
+  const bounds = useMemo(() => (isExample ? EXAMPLE_BOUNDS : computeBounds(points)), [isExample, points])
+  const scale = useMemo(
+    () => makeScale(bounds.xMin, bounds.xMax, bounds.yMin, bounds.yMax, 44, 16, 14, 36, 560, 340),
+    [bounds],
+  )
 
   useEffect(() => {
     simRef.current = sim
@@ -207,21 +340,124 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   }, [sim.iter, onStepsChange])
 
   useEffect(() => {
+    setSavedIter(sim.iter)
+  }, [sim.iter, setSavedIter])
+
+  useEffect(() => {
+    const finished = sim.converged ? ' Converged.' : sim.limit ? ` Stopped at the ${MAX_ITERS} iteration limit.` : ''
     onStateDescription?.(
-      `Stage "${stage}". Chosen k: ${k ?? 'not chosen yet'}. Iteration ${sim.iter}. ${running ? 'Auto-running.' : 'Paused.'}`,
+      `Stage "${stage}". K = ${k}. ${points.length} points (${isExample ? 'example data' : 'learner-supplied data'}). Iteration ${sim.iter}.${finished} ${running ? 'Auto-running.' : 'Paused.'}`,
     )
-  }, [stage, k, sim.iter, running, onStateDescription])
+  }, [stage, k, points.length, isExample, sim.iter, sim.converged, sim.limit, running, onStateDescription])
 
-  function pickK(chosenK) {
-    setK(chosenK)
-    setGroupNote(true)
-  }
-
-  function startCentres() {
-    const fresh = makeInitialSim(k)
+  // Any change of data or K starts the simulation again from the seeded centres.
+  function resetAll(pts, kk, example) {
+    clearTimeout(timerRef.current)
+    const fresh = makeInitialSim(pts, kk, example)
     simRef.current = fresh
     setSim(fresh)
     setVisited([0])
+    setRunning(false)
+    setAwaitingGuess(false)
+    setFocusIdx(null)
+    setReflectPick(null)
+    setAnnotation({ html: 'Press "Step forward" to begin.', kind: null })
+  }
+
+  function changeK(newK) {
+    setK(newK)
+    resetAll(points, newK, isExample)
+  }
+
+  function applyPoints(pts, info) {
+    const error = validatePoints(pts, k)
+    if (error) {
+      setDataError(error)
+      setDataInfo('')
+      return false
+    }
+    setCustomPoints(pts)
+    setSource('custom')
+    setDraftDirty(false)
+    setDataError('')
+    setDataInfo(info || `Using ${pts.length} points.`)
+    resetAll(pts, k, false)
+    return true
+  }
+
+  function useExample() {
+    setSource('example')
+    setEditing(false)
+    setDataError('')
+    setDataInfo('')
+    resetAll(POINTS, k, true)
+  }
+
+  function updateDraft(index, field, value) {
+    setDraftRows((rows) => rows.map((r, i) => (i === index ? { ...r, [field]: value } : r)))
+    setDraftDirty(true)
+    setDataInfo('')
+  }
+
+  function addDraftRow() {
+    setDraftRows((rows) => (rows.length >= MAX_POINTS ? rows : [...rows, { x: '', y: '' }]))
+    setDraftDirty(true)
+  }
+
+  function removeDraftRow(index) {
+    setDraftRows((rows) => (rows.length <= 1 ? rows : rows.filter((_, i) => i !== index)))
+    setDraftDirty(true)
+    setDataInfo('')
+  }
+
+  function applyDraft() {
+    const pts = []
+    for (let i = 0; i < draftRows.length; i += 1) {
+      const rawX = draftRows[i].x.trim()
+      const rawY = draftRows[i].y.trim()
+      if (rawX === '' && rawY === '') continue
+      const x = Number(rawX)
+      const y = Number(rawY)
+      if (rawX === '' || rawY === '' || !Number.isFinite(x) || !Number.isFinite(y)) {
+        setDataError(`Row ${i + 1}: enter a number in both x and y, or leave the row empty.`)
+        setDataInfo('')
+        return
+      }
+      pts.push([x, y])
+    }
+    applyPoints(pts)
+  }
+
+  async function handleFile(e) {
+    const file = e.target.files && e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    if (file.size > MAX_FILE_BYTES) {
+      setDataError('That file is too large. Please use a CSV with at most 200 rows.')
+      setDataInfo('')
+      return
+    }
+    let text
+    try {
+      text = await file.text()
+    } catch {
+      setDataError('Could not read that file. Please try again.')
+      setDataInfo('')
+      return
+    }
+    const { points: pts, skipped } = parseTwoColumnCsv(text)
+    const note = skipped
+      ? ` Ignored ${skipped} line${skipped === 1 ? '' : 's'} that were not two numbers (such as a header row).`
+      : ''
+    if (applyPoints(pts, `Loaded ${pts.length} points from ${file.name}.${note}`)) {
+      setDraftRows(pts.map((p) => ({ x: String(p[0]), y: String(p[1]) })))
+    } else if (skipped) {
+      setDataError((msg) => `${msg}${note}`)
+    }
+  }
+
+  function startCentres() {
+    resetAll(points, k, isExample)
     setAnnotation({
       html: 'Press "Step forward" to begin. Watch which point you are asked to predict for.',
       kind: null,
@@ -234,12 +470,12 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   }
 
   function doStep(guess, idx) {
-    const result = computeStep(simRef.current, guess, idx)
+    const result = computeStep(points, simRef.current, guess, idx)
     simRef.current = result.sim
     setSim(result.sim)
     setAnnotation(result.annotation)
     setVisited((v) => (v.includes(result.sim.iter) ? v : [...v, result.sim.iter]))
-    return result.sim.converged
+    return result.sim.done
   }
 
   function handleJump(target) {
@@ -249,13 +485,8 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
     setFocusIdx(null)
     setReflectPick(null)
 
-    let next = makeInitialSim(k)
-    let note = { html: 'Press "Step forward" to begin.', kind: null }
-    for (let i = 0; i < target; i += 1) {
-      const result = computeStep(next, null, null)
-      next = result.sim
-      note = result.annotation
-    }
+    // Replay from the same seeded centres every time.
+    const { sim: next, annotation: note } = replaySim(points, k, isExample, target)
     simRef.current = next
     setSim(next)
     setAnnotation(note)
@@ -263,7 +494,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   }
 
   function handleStepClick() {
-    const idx = focusIndexForIter(simRef.current.iter)
+    const idx = focusIndexForIter(simRef.current.iter, points.length)
     setFocusIdx(idx)
     setAwaitingGuess(true)
   }
@@ -275,7 +506,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   }
 
   function handleRun() {
-    if (running || simRef.current.converged) return
+    if (running || simRef.current.done) return
     setAwaitingGuess(false)
     setFocusIdx(null)
     setRunning(true)
@@ -291,28 +522,18 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   }
 
   function handleReset() {
-    clearTimeout(timerRef.current)
-    const fresh = makeInitialSim(k)
-    simRef.current = fresh
-    setSim(fresh)
-    setVisited([0])
-    setRunning(false)
-    setAwaitingGuess(false)
-    setFocusIdx(null)
-    setReflectPick(null)
-    setAnnotation({ html: 'Press "Step forward" to begin.', kind: null })
+    resetAll(points, k, isExample)
   }
 
   function startOver() {
     clearTimeout(timerRef.current)
     setStage('group')
-    setK(null)
-    setGroupNote(false)
     setReflectPick(null)
   }
 
   // ---------- stage: table (get familiar with the raw data first) ----------
   if (stage === 'table') {
+    const canContinue = !editing || (source === 'custom' && !draftDirty)
     return (
       <div className="kmeans">
         <div className="kmeans-controls">
@@ -323,31 +544,123 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
           <p className="note">
             <b>x</b> and <b>y</b> are just its coordinates, the same way you'd plot a point on graph paper.
           </p>
+          <div className="btnCol">
+            {editing ? (
+              <button className="btnG" onClick={useExample}>
+                Back to the example data
+              </button>
+            ) : (
+              <button className="btnG" onClick={() => setEditing(true)}>
+                Use your own data
+              </button>
+            )}
+          </div>
           <div className="stageActions">
-            <button className="btnP" onClick={() => setStage('group')}>
+            <button className="btnP" onClick={() => setStage('group')} disabled={!canContinue}>
               Now plot these on a graph
             </button>
           </div>
+          {editing && !canContinue && (
+            <p className="note">Press "Use these points" first so your data is checked.</p>
+          )}
         </div>
         <div className="kmeans-main">
-          <table className="exampleTable">
-            <thead>
-              <tr>
-                <th>Point</th>
-                <th>x</th>
-                <th>y</th>
-              </tr>
-            </thead>
-            <tbody>
-              {POINTS.map((p, i) => (
-                <tr key={i}>
-                  <td>#{i + 1}</td>
-                  <td>{p[0]}</td>
-                  <td>{p[1]}</td>
+          {!editing ? (
+            <table className="exampleTable">
+              <thead>
+                <tr>
+                  <th>Point</th>
+                  <th>x</th>
+                  <th>y</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {POINTS.map((p, i) => (
+                  <tr key={i}>
+                    <td>#{i + 1}</td>
+                    <td>{p[0]}</td>
+                    <td>{p[1]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="dataEditor">
+              <p className="note">
+                Enter {MIN_POINTS} to {MAX_POINTS} points, or upload a CSV file whose first two columns are x and y. A
+                header row and any line that is not two numbers is ignored. You need at least {k} distinct points for
+                K = {k}.
+              </p>
+              <div className="dataTableWrap">
+                <table className="exampleTable dataTable">
+                  <thead>
+                    <tr>
+                      <th>Point</th>
+                      <th>x</th>
+                      <th>y</th>
+                      <th>
+                        <span className="srOnly">Remove</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {draftRows.map((row, i) => (
+                      <tr key={i}>
+                        <td>#{i + 1}</td>
+                        <td>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            aria-label={`Point ${i + 1} x`}
+                            value={row.x}
+                            onChange={(e) => updateDraft(i, 'x', e.target.value)}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            aria-label={`Point ${i + 1} y`}
+                            value={row.y}
+                            onChange={(e) => updateDraft(i, 'y', e.target.value)}
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btnG rowBtn"
+                            onClick={() => removeDraftRow(i)}
+                            disabled={draftRows.length <= 1}
+                            aria-label={`Remove point ${i + 1}`}
+                          >
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="editorActions">
+                <button type="button" className="btnG" onClick={addDraftRow} disabled={draftRows.length >= MAX_POINTS}>
+                  Add row
+                </button>
+                <button type="button" className="btnG" onClick={() => fileRef.current && fileRef.current.click()}>
+                  Upload CSV
+                </button>
+                <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={handleFile} hidden />
+                <button type="button" className="btnP" onClick={applyDraft}>
+                  Use these points
+                </button>
+              </div>
+              {dataError && (
+                <p className="errorMsg" role="alert">
+                  {dataError}
+                </p>
+              )}
+              {dataInfo && !dataError && <p className="okMsg">{dataInfo}</p>}
+            </div>
+          )}
         </div>
       </div>
     )
@@ -355,44 +668,52 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
 
   // ---------- stage: group (choose K) ----------
   if (stage === 'group') {
+    let kNote
+    if (isExample && k === 2) {
+      kNote = 'Two groups looks like a fair call here, there does seem to be a cluster bottom-left and one top-right.'
+    } else if (isExample) {
+      kNote = `${k} groups is more than the two clusters that stand out visually. Let's see what K-Means does with the extra ones.`
+    } else {
+      kNote = `K-Means will split your data into exactly ${k} groups, whether or not that matches its natural shape.`
+    }
     return (
       <div className="kmeans">
         <div className="kmeans-controls">
           <p className="storyText">
-            You just saw this as a table of numbers. Here it is plotted as a graph instead, 16 points, no groups
-            yet. How would you group them?
+            You just saw this as a table of numbers. Here it is plotted as a graph instead, {points.length} points, no
+            groups yet. How would you group them?
           </p>
-          <p className="note">Pick how many groups feels natural to you.</p>
+          <p className="note">Pick how many groups (K) feels natural to you.</p>
           <div className="choiceRow">
-            <button className={`guessBtn${k === 2 ? ' active' : ''}`} onClick={() => pickK(2)}>
-              2 groups
-            </button>
-            <button className={`guessBtn${k === 3 ? ' active' : ''}`} onClick={() => pickK(3)}>
-              3 groups
+            {K_OPTIONS.map((opt) => (
+              <button
+                key={opt}
+                className={`guessBtn${k === opt ? ' active' : ''}`}
+                onClick={() => changeK(opt)}
+                disabled={distinctCount < opt}
+                title={distinctCount < opt ? `Your data has only ${distinctCount} distinct points` : undefined}
+              >
+                {opt} groups
+              </button>
+            ))}
+          </div>
+          {distinctCount < Math.max(...K_OPTIONS) && (
+            <p className="note">Larger K values need more distinct points than your data has.</p>
+          )}
+          <div className="stageActions">
+            <button className="btnP" onClick={startCentres}>
+              Continue
             </button>
           </div>
-          {groupNote && (
-            <div className="stageActions">
-              <button className="btnP" onClick={startCentres}>
-                Continue
-              </button>
-            </div>
-          )}
         </div>
         <div className="kmeans-main">
           <div className="chartRow">
-            <span className="chartTitle">16 points, no groups yet</span>
+            <span className="chartTitle">{points.length} points, no groups yet</span>
           </div>
-          <ChartFrame>
-            <PointDots assign={POINTS.map(() => null)} />
+          <ChartFrame scale={scale} bounds={bounds}>
+            <PointDots points={points} scale={scale} assign={points.map(() => null)} />
           </ChartFrame>
-          {groupNote && (
-            <div className="annotation">
-              {k === 2
-                ? 'Two groups looks like a fair call here, there does seem to be a cluster bottom-left and one top-right.'
-                : "Three groups is more than the two clusters that stand out visually. Let's see what K-Means does with that extra one."}
-            </div>
-          )}
+          <div className="annotation">{kNote}</div>
         </div>
       </div>
     )
@@ -400,6 +721,14 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
 
   // ---------- stage: centres ----------
   if (stage === 'centres') {
+    let centreNote
+    if (isExample && k === 2) {
+      centreNote = 'Both starting centres here are placed close together on purpose, instead of one near each group.'
+    } else if (isExample) {
+      centreNote = `The first centre starts at (1.5, 1.5). Each further centre is placed on the point farthest from the centres already chosen.`
+    } else {
+      centreNote = `The first centre starts on your first point. Each further centre is placed on the point farthest from the centres already chosen.`
+    }
     return (
       <div className="kmeans">
         <div className="kmeans-controls">
@@ -407,11 +736,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
             What you're setting up is called <b>K-Means Clustering</b>. Before it can assign anything, it needs some
             starting centres.
           </p>
-          <p className="note">
-            {k === 2
-              ? 'Both starting centres here are placed close together on purpose, instead of one near each group.'
-              : 'Two of the three starting centres are placed inside the same bottom-left group on purpose.'}
-          </p>
+          <p className="note">{centreNote}</p>
           <div className="stageActions">
             <button className="btnG" onClick={startOver}>
               Back
@@ -423,12 +748,13 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
         </div>
         <div className="kmeans-main">
           <div className="chartRow">
-            <span className="chartTitle">{`${POINTS.length} points, ${k} starting centres`}</span>
+            <span className="chartTitle">{`${points.length} points, ${k} starting centres`}</span>
           </div>
-          <ChartFrame>
-            <PointDots assign={POINTS.map(() => null)} />
-            <CentroidMarks centroids={sim.centroids} />
+          <ChartFrame scale={scale} bounds={bounds}>
+            <PointDots points={points} scale={scale} assign={points.map(() => null)} />
+            <CentroidMarks scale={scale} centroids={sim.centroids} />
           </ChartFrame>
+          <Legend k={k} />
           <div className="annotation">
             Where a centre starts can matter. Watch what happens once assignment begins.
           </div>
@@ -439,7 +765,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
 
   // ---------- stage: distance (formal assignment rule, worked example) ----------
   if (stage === 'distance') {
-    const p0 = POINTS[0]
+    const p0 = points[0]
     const dists = sim.centroids.map((c) => dist(p0, c))
     const nearest = dists.indexOf(Math.min(...dists))
 
@@ -491,13 +817,15 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   return (
     <div className="kmeans kmeans--with-nav">
       <div className="kmeans-controls">
-        <p className="note">Dataset: preset, fixed for this prototype.</p>
+        <p className="note">
+          {isExample ? 'Dataset: example data.' : 'Dataset: your own data.'} K = {k}.
+        </p>
         {!awaitingGuess ? (
           <div className="btnCol">
-            <button className="btnP" onClick={handleStepClick} disabled={sim.converged || running}>
+            <button className="btnP" onClick={handleStepClick} disabled={sim.done || running}>
               Step forward
             </button>
-            <button className="btnG" onClick={handleRun} disabled={sim.converged || running}>
+            <button className="btnG" onClick={handleRun} disabled={sim.done || running}>
               {running ? 'Running…' : 'Run to convergence'}
             </button>
             <button className="btnG" onClick={handleReset}>
@@ -511,17 +839,10 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
             </p>
             {sim.centroids.map((_, i) => (
               <button key={i} className="guessBtn" onClick={() => handleGuess(i)}>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: 9,
-                    height: 9,
-                    borderRadius: '50%',
-                    background: COLORS[i],
-                    marginRight: 7,
-                  }}
-                />
-                {COLOR_NAMES[i]}
+                <MarkerIcon index={i} />
+                <span className="guessLabel">
+                  Cluster {i + 1} ({SHAPES[i]})
+                </span>
               </button>
             ))}
           </div>
@@ -530,18 +851,20 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
 
       <div className="kmeans-main">
         <div className="chartRow">
-          <span className="chartTitle">{`${POINTS.length} points, ${k} clusters`}</span>
+          <span className="chartTitle">{`${points.length} points, ${k} clusters`}</span>
           <div className="readouts">
+            {sim.limit && <span>Stopped at the {MAX_ITERS} iteration limit</span>}
             <span>
               Iteration <b>{sim.iter}</b>
             </span>
           </div>
         </div>
 
-        <ChartFrame>
-          <PointDots assign={sim.assign} highlightIdx={awaitingGuess ? focusIdx : null} />
-          <CentroidMarks centroids={sim.centroids} />
+        <ChartFrame scale={scale} bounds={bounds}>
+          <PointDots points={points} scale={scale} assign={sim.assign} highlightIdx={awaitingGuess ? focusIdx : null} />
+          <CentroidMarks scale={scale} centroids={sim.centroids} />
         </ChartFrame>
+        <Legend k={k} />
 
         {annotation && (
           <div
@@ -550,18 +873,22 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
           />
         )}
 
-        {sim.converged && (
+        {sim.done && (
           <div className="reflectBox">
             <p className="sectionLabel">What just happened</p>
             <ol className="termList">
-              <li>Started with {POINTS.length} points and no groups</li>
+              <li>Started with {points.length} points and no groups</li>
               <li>
                 Chose K = {k}
               </li>
               <li>Placed {k} starting centres</li>
               <li>Assigned every point to its nearest centre</li>
               <li>Moved each centre to the average of its own points</li>
-              <li>Repeated assign and update until nothing changed</li>
+              <li>
+                {sim.converged
+                  ? 'Repeated assign and update until nothing changed'
+                  : `Repeated assign and update until the ${MAX_ITERS} iteration limit, when the centres were still moving`}
+              </li>
             </ol>
             <div className="formalBox">
               <p className="formalLabel">Formal definition</p>

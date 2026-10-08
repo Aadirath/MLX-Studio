@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import GoFurtherPanel from './GoFurtherPanel.jsx'
+import { useSessionState } from '../hooks/useSessionState.js'
 import './LinearRegression.css'
 
 const X = [1, 2, 3, 4, 5, 6, 6.5, 7, 8, 9]
@@ -275,20 +276,20 @@ function StageNav({ stage, furthestIdx, onJump }) {
 }
 
 function LinearRegression({ onStepsChange, onStateDescription } = {}) {
-  const [stage, setStage] = useState('context')
-  const [furthestIdx, setFurthestIdx] = useState(0)
+  const [stage, setStage] = useSessionState('mlx.linear-regression.stage', 'context')
+  const [furthestIdx, setFurthestIdx] = useSessionState('mlx.linear-regression.furthestIdx', 0)
 
   // discovery-stage state
-  const [guessPick, setGuessPick] = useState(null)
-  const [observePick, setObservePick] = useState(null)
-  const [manualM, setManualM] = useState(0.4)
-  const [manualB, setManualB] = useState(2)
+  const [guessPick, setGuessPick] = useSessionState('mlx.linear-regression.guessPick', null)
+  const [observePick, setObservePick] = useSessionState('mlx.linear-regression.observePick', null)
+  const [manualM, setManualM] = useSessionState('mlx.linear-regression.manualM', 0.4)
+  const [manualB, setManualB] = useSessionState('mlx.linear-regression.manualB', 2)
   const [manualBest, setManualBest] = useState(Infinity)
   const [reflectPick, setReflectPick] = useState(null)
 
   // derivation-stage state
-  const [deriveStep, setDeriveStep] = useState(0)
-  const [stepsSeen, setStepsSeen] = useState(0)
+  const [deriveStep, setDeriveStep] = useSessionState('mlx.linear-regression.deriveStep', 0)
+  const [stepsSeen, setStepsSeen] = useSessionState('mlx.linear-regression.stepsSeen', 0)
 
   useEffect(() => {
     onStepsChange?.(stepsSeen)

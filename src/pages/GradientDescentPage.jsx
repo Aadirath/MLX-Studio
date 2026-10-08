@@ -3,12 +3,19 @@ import { Link } from 'react-router-dom'
 import AIAssistantPanel from '../components/AIAssistantPanel.jsx'
 import GoFurtherPanel from '../components/GoFurtherPanel.jsx'
 import GradientDescent from '../components/GradientDescent.jsx'
+import RestartLessonButton from '../components/RestartLessonButton.jsx'
+import { clearSessionState } from '../hooks/useSessionState.js'
 import '../styles/paper.css'
 
 const TOPIC_ID = 'gradient-descent'
 
 function GradientDescentPage() {
   const [stateDescription, setStateDescription] = useState('')
+  const [runId, setRunId] = useState(0)
+  const handleRestart = () => {
+    clearSessionState(`mlx.${TOPIC_ID}.`)
+    setRunId((n) => n + 1)
+  }
   return (
     <section className="paper">
       <h1>Gradient descent — finding the bottom of the bowl</h1>
@@ -17,7 +24,8 @@ function GradientDescentPage() {
         the same problem: start anywhere, and repeatedly nudge downhill until you reach the lowest error. The surface
         below plots every possible slope and intercept against how wrong that line would be.
       </p>
-      <GradientDescent onStateDescription={setStateDescription} />
+      <RestartLessonButton onRestart={handleRestart} />
+      <GradientDescent key={runId} onStateDescription={setStateDescription} />
       <GoFurtherPanel topic="gradientDescent" />
       <AIAssistantPanel topic={TOPIC_ID} stateDescription={stateDescription} />
       <p className="sub" style={{ margin: '16px 0 0', fontSize: '12px' }}>
