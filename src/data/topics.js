@@ -25,7 +25,6 @@ export const TOPICS = {
       'Explain how a point is assigned to a cluster',
       'Predict how a centroid will move',
       'Recognise convergence',
-      'Explain how choosing K changes the clusters (K is a hyperparameter)',
     ],
     prereqs: ['Basic coordinate geometry'],
     time: '~15 min',
@@ -44,7 +43,6 @@ export const TOPICS = {
       'Explain what the error surface shows',
       'Predict which way each step will move',
       'Recognise when gradient descent has converged',
-      'Explain how the learning rate changes the path (the learning rate is a hyperparameter)',
     ],
     prereqs: ['Linear regression lesson (recommended first)', 'Basic coordinate geometry'],
     time: '~15 min',
@@ -209,16 +207,6 @@ export const QUIZ = {
       correct: 0,
       explain: "Assignment gets recalculated every iteration from the current centre positions, so if the distances shift, a point's group can shift too. Its own coordinates never move, only its group label can.",
     },
-    {
-      prompt: 'Which of these do you choose before K-means starts running?',
-      opts: [
-        'The number of clusters K',
-        'The final centroid positions',
-        'The cluster each point ends up in',
-      ],
-      correct: 0,
-      explain: 'K is a hyperparameter: you set it first, and the algorithm works out the centroids and assignments.',
-    },
   ],
   'gradient-descent': [
     {
@@ -249,17 +237,6 @@ export const QUIZ = {
       correct: 0,
       explain:
         'Near the bottom the surface is nearly flat, so each step barely changes the error. The learning rate stays fixed, and the line rarely passes through every point.',
-    },
-    {
-      prompt: 'The learning rate is an example of a...',
-      opts: [
-        'Hyperparameter, set before the descent starts',
-        'Parameter learned by the descent',
-        'Result of the descent',
-      ],
-      correct: 0,
-      explain:
-        'The slope and intercept are what the descent learns. The learning rate is set beforehand and controls the step size.',
     },
   ],
 }
