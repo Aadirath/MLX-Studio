@@ -10,6 +10,12 @@ export const TOPICS = {
     ],
     prereqs: ['Basic coordinate geometry'],
     time: '~15 min',
+    video: {
+      youtubeId: 'nk2CQITm_eo',
+      title: 'Linear Regression, Clearly Explained!!!',
+      channel: 'StatQuest with Josh Starmer',
+      note: 'Shows how a line is fitted to data by least squares and how R-squared measures the fit. Connect it to the Measure the error and Minimise the error stages.',
+    },
   },
   'k-means': {
     name: 'K-means clustering',
@@ -22,6 +28,12 @@ export const TOPICS = {
     ],
     prereqs: ['Basic coordinate geometry'],
     time: '~15 min',
+    video: {
+      youtubeId: '4b5d3muPQmA',
+      title: 'StatQuest: K-means clustering',
+      channel: 'StatQuest with Josh Starmer',
+      note: 'Walks through the K-means algorithm, then shows how to pick K using an elbow plot. Connect it to the K selector and the iteration panel.',
+    },
   },
   'gradient-descent': {
     name: 'Gradient descent',
@@ -34,6 +46,12 @@ export const TOPICS = {
     ],
     prereqs: ['Linear regression lesson (recommended first)', 'Basic coordinate geometry'],
     time: '~15 min',
+    video: {
+      youtubeId: 'sDv4f4s2SB8',
+      title: 'Gradient Descent, Step-by-Step',
+      channel: 'StatQuest with Josh Starmer',
+      note: 'Fits a line by gradient descent one step at a time, explaining the step size and when to stop. Connect it to the learning-rate slider and the path on the error surface.',
+    },
   },
 }
 

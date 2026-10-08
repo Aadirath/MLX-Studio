@@ -1,0 +1,60 @@
+.paper .videoEmbed {
+  margin: 0 0 18px;
+}
+
+.paper .videoFrame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--line);
+  background: var(--ink);
+}
+
+.paper .videoFrame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.paper .videoEmbed figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.paper .videoTitle {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.paper .videoChannel {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.paper .videoLink {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--blue);
+}
+
+.paper .videoLink:focus-visible,
+.paper .videoFrame iframe:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.paper .videoNoteHeading {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--muted);
+  margin: 12px 0 4px;
+}
+
+.paper .videoNote {
+  margin: 0;
+  color: var(--ink);
+  font-size: 13px;
+}

@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { TOPICS, TOPIC_PLAYGROUND_PATHS } from '../data/topics.js'
 import NotFound from './NotFound.jsx'
+import VideoEmbed from '../components/VideoEmbed.jsx'
 import '../styles/paper.css'
 
 function TopicOverviewPage() {
@@ -31,6 +32,13 @@ function TopicOverviewPage() {
             </li>
           ))}
         </ul>
+
+        {topic.video?.youtubeId && (
+          <>
+            <div className="sectionLabel">Watch first (optional)</div>
+            <VideoEmbed video={topic.video} />
+          </>
+        )}
 
         <div className="ovFooter">
           <span className="pill">{topic.time}</span>
