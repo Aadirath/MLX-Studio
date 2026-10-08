@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import GoFurtherPanel from './GoFurtherPanel.jsx'
 import { useSessionState } from '../hooks/useSessionState.js'
+import { createSonifier } from '../utils/sound.js'
+import SoundToggle from './SoundToggle.jsx'
 import {
   MAX_FILE_BYTES,
   MAX_POINTS,
@@ -277,7 +279,13 @@ function IterationNav({ current, visited, onJump }) {
   )
 }
 
-function KMeansStages({ onStepsChange, onStateDescription } = {}) {
+// Sum of squared distances from each point to the centroid it is assigned to; null before the first step.
+function totalSpread(points, sim) {
+  if (sim.iter === 0 || sim.assign.some((a) => a === null)) return null
+  return points.reduce((s, p, i) => s + dist(p, sim.centroids[sim.assign[i]]) ** 2, 0)
+}
+
+function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) {
   const [stage, setStage] = useSessionState('mlx.k-means.stage', 'table', (v) => STAGE_KEYS.includes(v))
   const [k, setK] = useSessionState('mlx.k-means.k', 2, (v) => K_OPTIONS.includes(v))
 
@@ -319,9 +327,29 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   const [visited, setVisited] = useState(() => Array.from({ length: savedIter + 1 }, (_, i) => i))
 
   const simRef = useRef(sim)
+  const onExperimentRef = useRef(onExperiment)
+  const reportedRef = useRef(false)
+  const [soundOn, setSoundOn] = useState(false)
+  const [soundNote, setSoundNote] = useState('')
+  const soundOnRef = useRef(false)
+  const sonifierRef = useRef(null)
+
+  useEffect(() => {
+    soundOnRef.current = soundOn
+    if (!soundOn) {
+      sonifierRef.current?.close()
+      setSoundNote('')
+    }
+  }, [soundOn])
+
+  // Stop any sound and release the audio context when the learner leaves the page.
+  useEffect(() => () => sonifierRef.current?.close(), [])
   const timerRef = useRef(null)
   const fileRef = useRef(null)
 
+  const spread = useMemo(() => totalSpread(points, sim), [points, sim])
+  // The run is deterministic from the seeded centres, so the first iteration's spread is the same every time.
+  const sseFirst = useMemo(() => totalSpread(points, replaySim(points, k, isExample, 1).sim), [points, k, isExample])
   const distinctCount = useMemo(() => countDistinct(points), [points])
   const bounds = useMemo(() => (isExample ? EXAMPLE_BOUNDS : computeBounds(points)), [isExample, points])
   const scale = useMemo(
@@ -332,6 +360,10 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
   useEffect(() => {
     simRef.current = sim
   }, [sim])
+
+  useEffect(() => {
+    onExperimentRef.current = onExperiment
+  }, [onExperiment])
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
@@ -355,6 +387,8 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
     clearTimeout(timerRef.current)
     const fresh = makeInitialSim(pts, kk, example)
     simRef.current = fresh
+    reportedRef.current = false
+    setSoundNote('')
     setSim(fresh)
     setVisited([0])
     setRunning(false)
@@ -469,12 +503,43 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
     setStage('stepping')
   }
 
+  // One tone per iteration: pitch rises with total spread relative to the first iteration.
+  function playFor(next) {
+    if (!soundOnRef.current || next.iter === 0) return
+    try {
+      const sse = totalSpread(points, next)
+      if (sse === null) return
+      if (!sonifierRef.current) sonifierRef.current = createSonifier()
+      const freq = Math.min(1500, sseFirst > 0 ? 196 * 2 ** ((2 * sse) / sseFirst) : 196)
+      sonifierRef.current.playStep({ freq, pan: 0 })
+      if (next.converged) sonifierRef.current.playResolve()
+      setSoundNote(
+        `Sound played: total spread ${sse.toFixed(2)}, pitch ${Math.round(freq)} Hz.${next.converged ? ' The clusters stopped changing: the two-note chime played.' : ''}`,
+      )
+    } catch {
+      // sound is optional
+    }
+  }
+
   function doStep(guess, idx) {
     const result = computeStep(points, simRef.current, guess, idx)
     simRef.current = result.sim
     setSim(result.sim)
     setAnnotation(result.annotation)
+    playFor(result.sim)
     setVisited((v) => (v.includes(result.sim.iter) ? v : [...v, result.sim.iter]))
+    // Only runs the learner started themselves end up here (jumps and restores replay elsewhere).
+    if (result.sim.done && !reportedRef.current) {
+      reportedRef.current = true
+      const next = result.sim
+      const sizes = next.centroids.map((_, i) => next.assign.filter((a) => a === i).length)
+      const outcome = next.converged
+        ? `converged in ${next.iter} iterations`
+        : `stopped at the ${MAX_ITERS} iteration limit without converging`
+      onExperimentRef.current?.(
+        `K=${k}, ${isExample ? 'example data' : 'own data'}, ${points.length} points: ${outcome}, total spread ${totalSpread(points, next).toFixed(1)}, cluster sizes ${sizes.join(', ')}`,
+      )
+    }
     return result.sim.done
   }
 
@@ -490,6 +555,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
     simRef.current = next
     setSim(next)
     setAnnotation(note)
+    playFor(next)
     setVisited((v) => (v.includes(target) ? v : [...v, target]))
   }
 
@@ -697,6 +763,7 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
               </button>
             ))}
           </div>
+          <p className="note">K is a hyperparameter. Try 2, 3 and 4 and watch what changes.</p>
           {distinctCount < Math.max(...K_OPTIONS) && (
             <p className="note">Larger K values need more distinct points than your data has.</p>
           )}
@@ -847,6 +914,12 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
             ))}
           </div>
         )}
+        <SoundToggle
+          checked={soundOn}
+          onChange={setSoundOn}
+          legend="Higher pitch means more total spread. A two-note chime means the clusters stopped changing."
+          status={soundNote}
+        />
       </div>
 
       <div className="kmeans-main">
@@ -854,6 +927,9 @@ function KMeansStages({ onStepsChange, onStateDescription } = {}) {
           <span className="chartTitle">{`${points.length} points, ${k} clusters`}</span>
           <div className="readouts">
             {sim.limit && <span>Stopped at the {MAX_ITERS} iteration limit</span>}
+            <span>
+              Total spread (SSE) <b>{spread === null ? '' : spread.toFixed(2)}</b>
+            </span>
             <span>
               Iteration <b>{sim.iter}</b>
             </span>
