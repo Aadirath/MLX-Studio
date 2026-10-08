@@ -1,85 +1,104 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSessionState } from '../hooks/useSessionState.js'
+import { createSonifier } from '../utils/sound.js'
+import SoundToggle from './SoundToggle.jsx'
 import './GradientDescent.css'
 
-// Same dataset as the Linear Regression lesson: area (100 sq ft) vs. price (₹ lakh)
-const X = [1, 2, 3, 4, 5, 6, 6.5, 7, 8, 9]
-const Y = [2.1, 2.9, 4.2, 4.8, 6.1, 6.9, 7.3, 7.8, 8.6, 9.4]
-const N = X.length
+const range = (n) => Array.from({ length: n }, (_, i) => i + 1)
 
-const meanX = X.reduce((a, b) => a + b, 0) / N
-const meanY = Y.reduce((a, b) => a + b, 0) / N
-const stdX = Math.sqrt(X.reduce((s, x) => s + (x - meanX) ** 2, 0) / N)
-const stdY = Math.sqrt(Y.reduce((s, y) => s + (y - meanY) ** 2, 0) / N)
-const Xn = X.map((x) => (x - meanX) / stdX)
-const Yn = Y.map((y) => (y - meanY) / stdY)
+// Each preset: 10 points, its own start point, heatmap window and mini-chart window.
+const PRESETS = [
+  {
+    id: 'house',
+    name: 'House prices',
+    description: "Area against price for 10 flats, the lesson's example",
+    X: [1, 2, 3, 4, 5, 6, 6.5, 7, 8, 9],
+    Y: [2.1, 2.9, 4.2, 4.8, 6.1, 6.9, 7.3, 7.8, 8.6, 9.4],
+    xLabel: 'Area (100 sq ft)',
+    yLabel: 'Price (₹ lakh)',
+    startB1: -0.3,
+    startB0: 6.5,
+    b1: [-0.7, 2.4],
+    b0: [-8.3, 11.7],
+    miniX: [0, 10],
+    miniY: [0, 11],
+  },
+  {
+    id: 'exam',
+    name: 'Exam scores',
+    description: 'Study hours against exam score. A steep slope in different units',
+    X: range(10),
+    Y: [42, 48, 47, 58, 62, 64, 71, 73, 80, 83],
+    xLabel: 'Study hours per week',
+    yLabel: 'Exam score (out of 100)',
+    startB1: -1.44,
+    startB0: 64.71,
+    b1: [-3.4, 11.7],
+    b0: [-14.7, 94.5],
+    miniX: [0, 11],
+    miniY: [0, 92],
+  },
+  {
+    id: 'car',
+    name: 'Used car value',
+    description: 'Car age against price. The slope is negative, so the search moves the other way',
+    X: range(10),
+    Y: [8.9, 8.1, 7.4, 6.9, 6.0, 5.6, 4.7, 4.4, 3.5, 3.1],
+    xLabel: 'Car age (years)',
+    yLabel: 'Price (₹ lakh)',
+    startB1: -1.49,
+    startB0: 13.19,
+    b1: [-1.8, 0.4],
+    b0: [2.2, 17.4],
+    miniX: [0, 11],
+    miniY: [0, 10],
+  },
+  {
+    id: 'noisy',
+    name: 'Noisy sales data',
+    description: 'Advertising spend against weekly sales. The points are scattered, so even the best line leaves a large error',
+    X: range(10),
+    Y: [3.2, 7.1, 4.0, 8.3, 5.1, 9.0, 4.8, 8.6, 6.9, 9.5],
+    xLabel: 'Advertising spend (₹ thousand)',
+    yLabel: 'Weekly sales (hundreds of units)',
+    startB1: -0.53,
+    startB0: 8.59,
+    b1: [-0.9, 1.6],
+    b0: [-4.0, 13.4],
+    miniX: [0, 11],
+    miniY: [0, 11],
+  },
+]
 
-const B1_MIN = -0.5
-const B1_MAX = 3
-const B0_MIN = -2
-const B0_MAX = 8
-const START_B1 = -0.3
-const START_B0 = 6.5
 const MAX_STEPS = 10
 const LR_MIN = 0.05
 const LR_MAX = 1.2
 const LR_STEP = 0.05
 const LR_DEFAULT = 0.3
 const CONVERGED_WITHIN = 0.05
+const HIGH_ERROR_SHARE = 0.1
 const TICK_MS = 650
 const INTRO = 'Press "Step forward" to begin. The starting point is deliberately far from the minimum.'
-
-// OLS optimum, for the star marker
-const sxy = X.reduce((s, x, i) => s + (x - meanX) * (Y[i] - meanY), 0)
-const sxx = X.reduce((s, x) => s + (x - meanX) ** 2, 0)
-const OLS_B1 = sxy / sxx
-const OLS_B0 = meanY - OLS_B1 * meanX
+const HIGH_ERROR_NOTE =
+  ' The error stays high because no straight line fits scattered points well. Gradient descent found the best line there is.'
 
 const W = 560
 const H = 400
 const PAD = { l: 50, r: 20, t: 14, b: 36 }
 const plotW = W - PAD.l - PAD.r
 const plotH = H - PAD.t - PAD.b
-const px = (b1) => PAD.l + ((b1 - B1_MIN) / (B1_MAX - B1_MIN)) * plotW
-const py = (b0) => PAD.t + plotH - ((b0 - B0_MIN) / (B0_MAX - B0_MIN)) * plotH
+const GRID_X = 44
+const GRID_Y = 32
+const cellW = plotW / GRID_X
+const cellH = plotH / GRID_Y
 
-function mseReal(b1, b0) {
+function mseOf(X, Y, b1, b0) {
   let s = 0
-  for (let i = 0; i < N; i++) {
+  for (let i = 0; i < X.length; i++) {
     const e = b1 * X[i] + b0 - Y[i]
     s += e * e
   }
-  return s / N
-}
-
-const MSE_MIN = mseReal(OLS_B1, OLS_B0)
-
-function outsideChart(b1, b0) {
-  return b1 < B1_MIN || b1 > B1_MAX || b0 < B0_MIN || b0 > B0_MAX
-}
-
-// Descent runs on standardised data; these convert to and from the real coordinates we display.
-function realFromNorm(mn, bn) {
-  const b1 = (mn * stdY) / stdX
-  const b0 = meanY - b1 * meanX + bn * stdY
-  return [b1, b0]
-}
-
-function normFromReal(b1, b0) {
-  const mn = (b1 * stdX) / stdY
-  const bn = (b0 - meanY + b1 * meanX) / stdY
-  return [mn, bn]
-}
-
-function gradNorm(mn, bn) {
-  let dm = 0
-  let db = 0
-  for (let i = 0; i < N; i++) {
-    const e = mn * Xn[i] + bn - Yn[i]
-    dm += e * Xn[i]
-    db += e
-  }
-  return [(2 * dm) / N, (2 * db) / N]
+  return s / X.length
 }
 
 // paper (#F3EFE4) -> blue (#2F5D8A)
@@ -90,44 +109,138 @@ function lerpColor(t) {
   return `rgb(${c[0]},${c[1]},${c[2]})`
 }
 
-const GRID_X = 44
-const GRID_Y = 32
-const cellW = plotW / GRID_X
-const cellH = plotH / GRID_Y
+// Everything that depends on the chosen dataset, worked out once per preset.
+function buildDataset(p) {
+  const { X, Y } = p
+  const N = X.length
+  const meanX = X.reduce((a, b) => a + b, 0) / N
+  const meanY = Y.reduce((a, b) => a + b, 0) / N
+  const stdX = Math.sqrt(X.reduce((s, x) => s + (x - meanX) ** 2, 0) / N)
+  const stdY = Math.sqrt(Y.reduce((s, y) => s + (y - meanY) ** 2, 0) / N)
+  const sxy = X.reduce((s, x, i) => s + (x - meanX) * (Y[i] - meanY), 0)
+  const sxx = X.reduce((s, x) => s + (x - meanX) ** 2, 0)
+  const olsB1 = sxy / sxx
+  const olsB0 = meanY - olsB1 * meanX
+  const minErr = mseOf(X, Y, olsB1, olsB0)
+  const startErr = mseOf(X, Y, p.startB1, p.startB0)
+  const [B1_MIN, B1_MAX] = p.b1
+  const [B0_MIN, B0_MAX] = p.b0
 
-// Precomputed once: the error surface never changes.
-const HEAT_CELLS = []
-for (let i = 0; i < GRID_X; i++) {
-  const b1 = B1_MIN + ((i + 0.5) * (B1_MAX - B1_MIN)) / GRID_X
-  for (let j = 0; j < GRID_Y; j++) {
-    const b0 = B0_MIN + ((j + 0.5) * (B0_MAX - B0_MIN)) / GRID_Y
-    // clamp so the far corners don't wash out the bowl's detail
-    const t = Math.min(1, Math.sqrt(mseReal(b1, b0)) / 6)
-    HEAT_CELLS.push({
-      key: `${i}-${j}`,
-      x: PAD.l + i * cellW,
-      y: PAD.t + plotH - (j + 1) * cellH,
-      fill: lerpColor(t),
-    })
+  const d = {
+    ...p,
+    N,
+    meanX,
+    meanY,
+    stdX,
+    stdY,
+    Xn: X.map((x) => (x - meanX) / stdX),
+    Yn: Y.map((y) => (y - meanY) / stdY),
+    olsB1,
+    olsB0,
+    minErr,
+    startErr,
+    B1_MIN,
+    B1_MAX,
+    B0_MIN,
+    B0_MAX,
+    highError: minErr > HIGH_ERROR_SHARE * startErr,
+    px: (b1) => PAD.l + ((b1 - B1_MIN) / (B1_MAX - B1_MIN)) * plotW,
+    py: (b0) => PAD.t + plotH - ((b0 - B0_MIN) / (B0_MAX - B0_MIN)) * plotH,
   }
+
+  // Colour scale is relative to this preset: lightest at the minimum, saturating at 3.5x the start's excess error.
+  const denom = 3.5 * (startErr - minErr)
+  d.heat = []
+  for (let i = 0; i < GRID_X; i++) {
+    const b1 = B1_MIN + ((i + 0.5) * (B1_MAX - B1_MIN)) / GRID_X
+    for (let j = 0; j < GRID_Y; j++) {
+      const b0 = B0_MIN + ((j + 0.5) * (B0_MAX - B0_MIN)) / GRID_Y
+      const t = Math.min(1, Math.sqrt(Math.max(0, mseOf(X, Y, b1, b0) - minErr) / denom))
+      d.heat.push({
+        key: `${i}-${j}`,
+        x: PAD.l + i * cellW,
+        y: PAD.t + plotH - (j + 1) * cellH,
+        fill: lerpColor(t),
+      })
+    }
+  }
+  return d
 }
 
-function initState() {
-  const [mn, bn] = normFromReal(START_B1, START_B0)
+const DATASETS = Object.fromEntries(PRESETS.map((p) => [p.id, buildDataset(p)]))
+const DATASET_IDS = PRESETS.map((p) => p.id)
+const DEFAULT_DATASET = 'house'
+
+const mseReal = (d, b1, b0) => mseOf(d.X, d.Y, b1, b0)
+
+function outsideChart(d, b1, b0) {
+  return b1 < d.B1_MIN || b1 > d.B1_MAX || b0 < d.B0_MIN || b0 > d.B0_MAX
+}
+
+// Descent runs on standardised data; these convert to and from the real coordinates we display.
+function realFromNorm(d, mn, bn) {
+  const b1 = (mn * d.stdY) / d.stdX
+  const b0 = d.meanY - b1 * d.meanX + bn * d.stdY
+  return [b1, b0]
+}
+
+function normFromReal(d, b1, b0) {
+  const mn = (b1 * d.stdX) / d.stdY
+  const bn = (b0 - d.meanY + b1 * d.meanX) / d.stdY
+  return [mn, bn]
+}
+
+function gradNorm(d, mn, bn) {
+  let dm = 0
+  let db = 0
+  for (let i = 0; i < d.N; i++) {
+    const e = mn * d.Xn[i] + bn - d.Yn[i]
+    dm += e * d.Xn[i]
+    db += e
+  }
+  return [(2 * dm) / d.N, (2 * db) / d.N]
+}
+
+function initState(d) {
+  const [mn, bn] = normFromReal(d, d.startB1, d.startB0)
   return {
     mn,
     bn,
     step: 0,
-    path: [[START_B1, START_B0]],
-    errs: [mseReal(START_B1, START_B0)],
+    path: [[d.startB1, d.startB0]],
+    errs: [d.startErr],
     done: false,
     converged: false,
     note: INTRO,
   }
 }
 
+// What went wrong in a run that ended without converging: `text` goes in the lesson message, `short` in the log.
+const DIAGNOSIS = {
+  diverging: {
+    text: 'The error kept rising, so the steps are too large and the descent is diverging.',
+    short: 'the steps were too large and it diverged',
+  },
+  bouncing: {
+    text: 'The error is no longer changing, so the path is bouncing between two points and never settling.',
+    short: 'it bounced between two points and never settled',
+  },
+  zigzag: {
+    text: 'The error is falling, but the slope estimate crosses the OLS slope on each step, so the steps overshoot and zigzag. It settles slowly.',
+    short: 'the steps overshot and zigzagged, so it settled slowly',
+  },
+  small: {
+    text: 'The error is falling steadily, so the steps are too small and it is still far away from the minimum.',
+    short: 'the steps were too small to get near the minimum',
+  },
+  unclear: {
+    text: 'The error has not settled into a clear pattern.',
+    short: 'the error had not settled into a clear pattern',
+  },
+}
+
 // Looks at the last few steps of a run that ended without converging.
-function diagnose(path, errs) {
+function diagnose(d, path, errs) {
   const last = errs.length - 1
   const from = Math.max(0, last - 3)
   const deltas = []
@@ -135,54 +248,48 @@ function diagnose(path, errs) {
   for (let i = from; i < last; i++) {
     const tol = 1e-6 * Math.max(errs[i], errs[i + 1])
     deltas.push({ d: errs[i + 1] - errs[i], tol })
-    crossings.push((path[i][0] - OLS_B1) * (path[i + 1][0] - OLS_B1) < 0)
+    crossings.push((path[i][0] - d.olsB1) * (path[i + 1][0] - d.olsB1) < 0)
   }
-  if (deltas.every(({ d, tol }) => d > tol)) {
-    return 'The error kept rising, so the steps are too large and the descent is diverging.'
-  }
-  if (deltas.every(({ d, tol }) => Math.abs(d) <= tol)) {
-    return 'The error is no longer changing, so the path is bouncing between two points and never settling.'
-  }
-  if (deltas.every(({ d, tol }) => d < -tol)) {
-    if (crossings.every(Boolean)) {
-      return 'The error is falling, but the slope estimate crosses the OLS slope on each step, so the steps overshoot and zigzag. It settles slowly.'
-    }
-    return 'The error is falling steadily, so the steps are too small and it is still far away from the minimum.'
-  }
-  return 'The error has not settled into a clear pattern.'
+  if (deltas.every(({ d: dv, tol }) => dv > tol)) return 'diverging'
+  if (deltas.every(({ d: dv, tol }) => Math.abs(dv) <= tol)) return 'bouncing'
+  if (deltas.every(({ d: dv, tol }) => dv < -tol)) return crossings.every(Boolean) ? 'zigzag' : 'small'
+  return 'unclear'
 }
 
-function advance(s, lr) {
-  const [prevB1] = realFromNorm(s.mn, s.bn)
+function advance(d, s, lr) {
+  const [prevB1] = realFromNorm(d, s.mn, s.bn)
   const prevMse = s.errs[s.errs.length - 1]
-  const [dm, db] = gradNorm(s.mn, s.bn)
+  const [dm, db] = gradNorm(d, s.mn, s.bn)
   const mn = s.mn - lr * dm
   const bn = s.bn - lr * db
   const step = s.step + 1
-  const [b1, b0] = realFromNorm(mn, bn)
-  const newMse = mseReal(b1, b0)
+  const [b1, b0] = realFromNorm(d, mn, bn)
+  const newMse = mseReal(d, b1, b0)
   const path = [...s.path, [b1, b0]]
   const errs = [...s.errs, newMse]
-  const converged = newMse <= MSE_MIN * (1 + CONVERGED_WITHIN)
+  const converged = newMse <= d.minErr * (1 + CONVERGED_WITHIN)
   const done = converged || step >= MAX_STEPS
   const slopeText = b1 > prevB1 ? `increased to ${b1.toFixed(2)}` : b1 < prevB1 ? `decreased to ${b1.toFixed(2)}` : `stayed at ${b1.toFixed(2)}`
   let errText
   if (newMse > prevMse) errText = `Error rose from ${prevMse.toFixed(3)} to ${newMse.toFixed(3)}.`
   else if (newMse < prevMse) errText = `Error fell from ${prevMse.toFixed(3)} to ${newMse.toFixed(3)}.`
   else errText = `Error stayed at ${newMse.toFixed(3)}.`
+  let diagnosis = null
   let note = `Moved to the steepest downhill direction from here. Slope ${slopeText}, intercept to ${b0.toFixed(2)}. ${errText}`
   if (converged) {
-    note += ` The error is within ${CONVERGED_WITHIN * 100}% of the OLS minimum (${MSE_MIN.toFixed(3)}), so this has converged: the bottom of the bowl, the same answer OLS computes directly in one step.`
+    note += ` The error is within ${CONVERGED_WITHIN * 100}% of the OLS minimum (${d.minErr.toFixed(3)}), so this has converged: the bottom of the bowl, the same answer OLS computes directly in one step.`
+    if (d.highError) note += HIGH_ERROR_NOTE
   } else if (done) {
-    note += ` Stopped at the ${MAX_STEPS} step limit without converging (not within ${CONVERGED_WITHIN * 100}% of the OLS minimum, ${MSE_MIN.toFixed(3)}). ${diagnose(path, errs)}`
+    diagnosis = diagnose(d, path, errs)
+    note += ` Stopped at the ${MAX_STEPS} step limit without converging (not within ${CONVERGED_WITHIN * 100}% of the OLS minimum, ${d.minErr.toFixed(3)}). ${DIAGNOSIS[diagnosis].text}`
   }
-  return { mn, bn, step, path, errs, done, converged, note }
+  return { mn, bn, step, path, errs, done, converged, diagnosis, note }
 }
 
 // Replays the descent from the starting point, with no animation.
-function replay(lr, steps) {
-  let s = initState()
-  for (let i = 0; i < steps; i++) s = advance(s, lr)
+function replay(d, lr, steps) {
+  let s = initState(d)
+  for (let i = 0; i < steps; i++) s = advance(d, s, lr)
   return s
 }
 
@@ -196,17 +303,17 @@ function starPoints(cx, cy) {
   return pts.join(' ')
 }
 
-const clampB1 = (v) => Math.min(B1_MAX, Math.max(B1_MIN, v))
-const clampB0 = (v) => Math.min(B0_MAX, Math.max(B0_MIN, v))
-
-function ErrorSurface({ b1, b0, path }) {
+function ErrorSurface({ d, b1, b0, path }) {
+  const { px, py, B1_MIN, B1_MAX, B0_MIN, B0_MAX } = d
+  const clampB1 = (v) => Math.min(B1_MAX, Math.max(B1_MIN, v))
+  const clampB0 = (v) => Math.min(B0_MAX, Math.max(B0_MIN, v))
   // Anything beyond the axes is drawn at the nearest edge.
   const edge = ([pb1, pb0]) => [px(clampB1(pb1)), py(clampB0(pb0))]
   const pts = path.map((p) => edge(p).map((v) => v.toFixed(1)).join(',')).join(' ')
   const [curX, curY] = edge([b1, b0])
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Heatmap of error across slope and intercept values, with the gradient descent path overlaid">
-      {HEAT_CELLS.map((c) => (
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Heatmap of error across slope and intercept values for the ${d.name} data, with the gradient descent path overlaid`}>
+      {d.heat.map((c) => (
         <rect key={c.key} x={c.x.toFixed(1)} y={c.y.toFixed(1)} width={(cellW + 0.6).toFixed(1)} height={(cellH + 0.6).toFixed(1)} fill={c.fill} />
       ))}
       <line x1={px(B1_MIN)} y1={py(B0_MIN)} x2={px(B1_MAX)} y2={py(B0_MIN)} stroke="var(--ink)" strokeWidth="1" opacity="0.4" />
@@ -222,7 +329,7 @@ function ErrorSurface({ b1, b0, path }) {
           <polyline points={pts} fill="none" stroke="var(--rust)" strokeWidth="2" />
           {path.map((p, i) => {
             const [ex, ey] = edge(p)
-            if (outsideChart(p[0], p[1])) {
+            if (outsideChart(d, p[0], p[1])) {
               return (
                 <g key={i}>
                   <rect x={ex - 6} y={ey - 6} width="12" height="12" fill="#fff" stroke="var(--rust)" strokeWidth="2" transform={`rotate(45 ${ex} ${ey})`} />
@@ -236,8 +343,8 @@ function ErrorSurface({ b1, b0, path }) {
           })}
         </>
       )}
-      <circle cx={px(START_B1)} cy={py(START_B0)} r="5" fill="none" stroke="var(--ink)" strokeWidth="1.5" />
-      <polygon points={starPoints(px(OLS_B1), py(OLS_B0))} fill="#D9B44A" stroke="var(--ink)" strokeWidth="0.5" />
+      <circle cx={px(d.startB1)} cy={py(d.startB0)} r="5" fill="none" stroke="var(--ink)" strokeWidth="1.5" />
+      <polygon points={starPoints(px(d.olsB1), py(d.olsB0))} fill="#D9B44A" stroke="var(--ink)" strokeWidth="0.5" />
       <circle cx={curX.toFixed(1)} cy={curY.toFixed(1)} r="6" fill="var(--blue)" stroke="#fff" strokeWidth="1.5" />
     </svg>
   )
@@ -245,19 +352,34 @@ function ErrorSurface({ b1, b0, path }) {
 
 const MINI = { W: 220, H: 180, l: 24, r: 10, t: 10, b: 22 }
 
-function MiniFit({ b1, b0 }) {
+function MiniFit({ d, b1, b0 }) {
   const pw = MINI.W - MINI.l - MINI.r
   const ph = MINI.H - MINI.t - MINI.b
-  const mx = (x) => MINI.l + (x / 10) * pw
-  const my = (y) => MINI.t + ph - (y / 11) * ph
+  const [x0, x1] = d.miniX
+  const [y0, y1] = d.miniY
+  const mx = (x) => MINI.l + ((x - x0) / (x1 - x0)) * pw
+  const my = (y) => MINI.t + ph - ((y - y0) / (y1 - y0)) * ph
   return (
-    <svg viewBox={`0 0 ${MINI.W} ${MINI.H}`} role="img" aria-label="The current line plotted against the housing data">
-      <line x1={mx(0)} y1={my(0)} x2={mx(0)} y2={my(11)} stroke="#C9C1A8" />
-      <line x1={mx(0)} y1={my(0)} x2={mx(10)} y2={my(0)} stroke="#C9C1A8" />
-      {X.map((x, i) => (
-        <circle key={i} cx={mx(x)} cy={my(Y[i])} r="3" fill="var(--ink)" />
+    <svg viewBox={`0 0 ${MINI.W} ${MINI.H}`} role="img" aria-label={`The current line plotted against the ${d.name} data`}>
+      <defs>
+        <clipPath id="gd-mini-clip">
+          <rect x={MINI.l} y={MINI.t} width={pw} height={ph} />
+        </clipPath>
+      </defs>
+      <line x1={mx(x0)} y1={my(y0)} x2={mx(x0)} y2={my(y1)} stroke="#C9C1A8" />
+      <line x1={mx(x0)} y1={my(y0)} x2={mx(x1)} y2={my(y0)} stroke="#C9C1A8" />
+      {d.X.map((x, i) => (
+        <circle key={i} cx={mx(x)} cy={my(d.Y[i])} r="3" fill="var(--ink)" />
       ))}
-      <line x1={mx(0)} y1={my(b0)} x2={mx(10)} y2={my(b1 * 10 + b0)} stroke="var(--blue)" strokeWidth="2" />
+      <line
+        x1={mx(x0)}
+        y1={my(b1 * x0 + b0)}
+        x2={mx(x1)}
+        y2={my(b1 * x1 + b0)}
+        stroke="var(--blue)"
+        strokeWidth="2"
+        clipPath="url(#gd-mini-clip)"
+      />
     </svg>
   )
 }
@@ -284,7 +406,24 @@ function JumpNav({ current, onJump }) {
   )
 }
 
-function GradientDescent({ onStateDescription } = {}) {
+const fmtErr = (v) => (v >= 100 ? v.toFixed(0) : v.toFixed(3))
+
+// One sentence describing how a run ended, for the experiment log.
+function summariseRun(d, lr, run) {
+  const head = `${d.name}, learning rate ${lr.toFixed(2)}`
+  const last = run.errs[run.errs.length - 1]
+  if (run.converged) return `${head}: converged in ${run.step} steps, error ${fmtErr(last)}`
+  const first = run.errs[0]
+  return `${head}: error ${last > first ? 'rose' : 'fell'} from ${fmtErr(first)} to ${fmtErr(last)} over ${run.step} steps, ${DIAGNOSIS[run.diagnosis].short}`
+}
+
+function GradientDescent({ onStateDescription, onExperiment } = {}) {
+  const [datasetId, setDatasetId] = useSessionState(
+    'mlx.gradient-descent.dataset',
+    DEFAULT_DATASET,
+    (v) => DATASET_IDS.includes(v),
+  )
+  const d = DATASETS[datasetId]
   const [lr, setLr] = useSessionState(
     'mlx.gradient-descent.lr',
     LR_DEFAULT,
@@ -296,12 +435,76 @@ function GradientDescent({ onStateDescription } = {}) {
     (v) => Number.isInteger(v) && v >= 0 && v <= MAX_STEPS,
   )
   // Restore by replaying from the starting point.
-  const [state, setState] = useState(() => replay(lr, savedStep))
+  const [state, setState] = useState(() => replay(d, lr, savedStep))
   const [running, setRunning] = useState(false)
+  const stateRef = useRef(state)
+  const onExperimentRef = useRef(onExperiment)
+  const reportedRef = useRef(false)
+  const [soundOn, setSoundOn] = useState(false)
+  const [soundNote, setSoundNote] = useState('')
+  const soundOnRef = useRef(false)
+  const sonifierRef = useRef(null)
 
-  const [b1, b0] = useMemo(() => realFromNorm(state.mn, state.bn), [state.mn, state.bn])
-  const m = mseReal(b1, b0)
-  const leftChart = state.path.some(([pb1, pb0]) => outsideChart(pb1, pb0))
+  useEffect(() => {
+    soundOnRef.current = soundOn
+    if (!soundOn) {
+      sonifierRef.current?.close()
+      setSoundNote('')
+    }
+  }, [soundOn])
+
+  // Stop any sound and release the audio context when the learner leaves the page.
+  useEffect(() => () => sonifierRef.current?.close(), [])
+
+  // One tone per step: pitch follows the heatmap's colour value t, pan follows the side of the best slope.
+  const playFor = (run) => {
+    if (!soundOnRef.current) return
+    try {
+      if (!sonifierRef.current) sonifierRef.current = createSonifier()
+      const err = run.errs[run.errs.length - 1]
+      const t = Math.sqrt(Math.max(err - d.minErr, 0) / (3.5 * (d.startErr - d.minErr)))
+      const freq = Math.min(1500, 196 * 2 ** (2.5 * t))
+      const olsMn = (d.olsB1 * d.stdX) / d.stdY
+      const pan = Math.max(-1, Math.min(1, (run.mn - olsMn) / 1.5))
+      sonifierRef.current.playStep({ freq, pan })
+      if (run.converged) sonifierRef.current.playResolve()
+      const side =
+        Math.abs(pan) < 0.05
+          ? 'sound in the centre, slope at the best slope'
+          : pan < 0
+            ? 'sound on the left, slope below the best slope'
+            : 'sound on the right, slope above the best slope'
+      setSoundNote(
+        `Sound played: error ${fmtErr(err)}, pitch ${Math.round(freq)} Hz; ${side}.${run.converged ? ' Settled: the two-note chime played.' : ''}`,
+      )
+    } catch {
+      // sound is optional
+    }
+  }
+
+  useEffect(() => {
+    onExperimentRef.current = onExperiment
+  }, [onExperiment])
+
+  // Every state change goes through here so the ref always holds the latest run.
+  const put = (next) => {
+    stateRef.current = next
+    setState(next)
+  }
+  // A step the learner asked for (button or auto-run). Replays and restores never come through here.
+  const userAdvance = () => {
+    const next = advance(d, stateRef.current, lr)
+    put(next)
+    playFor(next)
+    if (next.done && !reportedRef.current) {
+      reportedRef.current = true
+      onExperimentRef.current?.(summariseRun(d, lr, next))
+    }
+  }
+
+  const [b1, b0] = useMemo(() => realFromNorm(d, state.mn, state.bn), [d, state.mn, state.bn])
+  const m = mseReal(d, b1, b0)
+  const leftChart = state.path.some(([pb1, pb0]) => outsideChart(d, pb1, pb0))
 
   useEffect(() => {
     const status = state.converged
@@ -310,9 +513,9 @@ function GradientDescent({ onStateDescription } = {}) {
         ? `Stopped at the ${MAX_STEPS} step limit without converging.`
         : 'Not yet converged.'
     onStateDescription?.(
-      `Learning rate ${lr.toFixed(2)}. Step ${state.step}. Slope ${b1.toFixed(2)}, intercept ${b0.toFixed(2)}, error ${m.toFixed(3)}. ${status}${leftChart ? ' The path has left the chart.' : ''}`,
+      `Dataset: ${d.name} (${d.xLabel} against ${d.yLabel}). Learning rate ${lr.toFixed(2)}. Step ${state.step}. Slope ${b1.toFixed(2)}, intercept ${b0.toFixed(2)}, error ${m.toFixed(3)}. Lowest possible error ${d.minErr.toFixed(3)} at slope ${d.olsB1.toFixed(2)}, intercept ${d.olsB0.toFixed(2)}. ${status}${leftChart ? ' The path has left the chart.' : ''}`,
     )
-  }, [lr, state.step, state.done, state.converged, b1, b0, m, leftChart, onStateDescription])
+  }, [d, lr, state.step, state.done, state.converged, b1, b0, m, leftChart, onStateDescription])
 
   useEffect(() => {
     setSavedStep(state.step)
@@ -324,27 +527,42 @@ function GradientDescent({ onStateDescription } = {}) {
       setRunning(false)
       return undefined
     }
-    const id = setTimeout(() => setState((s) => advance(s, lr)), TICK_MS)
+    const id = setTimeout(userAdvance, TICK_MS)
     return () => clearTimeout(id)
-  }, [running, state, lr])
+  }, [running, state, lr, d])
 
-  const handleStep = () => setState((s) => advance(s, lr))
+  const handleStep = () => userAdvance()
   const handleRun = () => {
-    setState((s) => advance(s, lr))
+    userAdvance()
     setRunning(true)
   }
   const handleReset = () => {
     setRunning(false)
-    setState(initState())
+    reportedRef.current = false
+    setSoundNote('')
+    put(initState(d))
   }
   const handleLr = (e) => {
     setLr(Number(Number(e.target.value).toFixed(2)))
     setRunning(false)
-    setState(initState())
+    reportedRef.current = false
+    setSoundNote('')
+    put(initState(d))
   }
   const handleJump = (target) => {
     setRunning(false)
-    setState(replay(lr, target))
+    const landed = replay(d, lr, target)
+    put(landed)
+    playFor(landed)
+  }
+  // Learning rate is kept; the descent starts again from the new preset's start point.
+  const handleDataset = (id) => {
+    if (id === datasetId) return
+    setRunning(false)
+    setDatasetId(id)
+    reportedRef.current = false
+    setSoundNote('')
+    put(initState(DATASETS[id]))
   }
 
   return (
@@ -361,11 +579,18 @@ function GradientDescent({ onStateDescription } = {}) {
             Reset to step 0
           </button>
         </div>
+        <SoundToggle
+          checked={soundOn}
+          onChange={setSoundOn}
+          legend="Higher pitch means more error. The sound moves left or right depending on which side of the best slope you are on. A steady low note in the centre means it has settled."
+          status={soundNote}
+        />
         <div className="lrControl">
           <label htmlFor="gd-lr" className="lrLabel">
             Learning rate <b>{lr.toFixed(2)}</b>
           </label>
           <input id="gd-lr" type="range" min={LR_MIN} max={LR_MAX} step={LR_STEP} value={lr} onChange={handleLr} />
+          <p className="note">The learning rate is a hyperparameter. Try 0.05, 0.50 and 1.10 and watch the path.</p>
           <div className="legendLabels">
             <span>{LR_MIN.toFixed(2)}</span>
             <span>{LR_MAX.toFixed(2)}</span>
@@ -385,6 +610,22 @@ function GradientDescent({ onStateDescription } = {}) {
       </div>
 
       <div className="gd-main">
+        <div className="datasetPicker">
+          <div className="datasetRow" role="group" aria-label="Dataset">
+            {PRESETS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className={`datasetBtn${p.id === datasetId ? ' active' : ''}`}
+                aria-pressed={p.id === datasetId}
+                onClick={() => handleDataset(p.id)}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+          <p className="note">{d.description}</p>
+        </div>
         <div className="chartRow">
           <span className="chartTitle">Error surface: every possible slope × intercept</span>
           <div className="readouts">
@@ -394,9 +635,12 @@ function GradientDescent({ onStateDescription } = {}) {
             <span>
               Error (MSE) <b className="mseVal">{m.toFixed(3)}</b>
             </span>
+            <span>
+              Lowest possible error <b>{d.minErr.toFixed(3)}</b>
+            </span>
           </div>
         </div>
-        <ErrorSurface b1={b1} b0={b0} path={state.path} />
+        <ErrorSurface d={d} b1={b1} b0={b0} path={state.path} />
         {leftChart && (
           <div className="chartNote" role="status">
             The path has left the chart. Points beyond the edge are drawn at the nearest edge with a ! marker.
@@ -410,7 +654,10 @@ function GradientDescent({ onStateDescription } = {}) {
 
       <div className="gd-side">
         <h3>What this line looks like</h3>
-        <MiniFit b1={b1} b0={b0} />
+        <MiniFit d={d} b1={b1} b0={b0} />
+        <p className="note" style={{ marginTop: 4 }}>
+          x: {d.xLabel}. y: {d.yLabel}.
+        </p>
         <p className="note" style={{ marginTop: 8 }}>
           ŷ = {b0.toFixed(2)} + {b1.toFixed(2)}x
         </p>

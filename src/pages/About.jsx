@@ -21,8 +21,10 @@ function About() {
 
       <h3>About the AI assistant</h3>
       <p>
-        The AI assistant sends your question and a short description of the current screen to
-        Google&apos;s Gemini API. Please do not enter personal information.
+        The AI assistant sends your question, a short description of the current screen, your recent
+        experiment results and your chosen language to
+        Google&apos;s Gemini API. Please do not enter personal information. The Listen button uses the
+        speech voices built into your browser.
       </p>
 
       <h3>Source code</h3>
