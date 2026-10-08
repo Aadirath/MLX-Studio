@@ -263,39 +263,3 @@
   color: var(--blue);
   font-weight: 600;
 }
-
-.gd .datasetPicker {
-  margin-bottom: 14px;
-}
-
-.gd .datasetRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.gd .datasetBtn {
-  font-family: inherit;
-  font-size: 13px;
-  padding: 7px 10px;
-  background: var(--blue-soft);
-  border: 1px solid var(--blue);
-  border-radius: 5px;
-  color: var(--blue);
-  cursor: pointer;
-}
-
-.gd .datasetBtn:hover {
-  background: #d5e2ee;
-}
-
-.gd .datasetBtn.active {
-  background: var(--blue);
-  color: #fff;
-}
-
-.gd .readouts {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
