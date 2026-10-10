@@ -5,12 +5,20 @@ export const MIN_POINTS = 6
 export const MAX_POINTS = 200
 export const MAX_FILE_BYTES = 1_000_000
 
-function dist(a, b) {
-  return Math.hypot(a[0] - b[0], a[1] - b[1])
+// Euclidean distance in any number of dimensions (features).
+export function dist(a, b) {
+  let s = 0
+  for (let i = 0; i < a.length; i++) s += (a[i] - b[i]) ** 2
+  return Math.sqrt(s)
+}
+
+// Mean position of a group of points, one value per feature.
+export function meanOf(group, dims) {
+  return Array.from({ length: dims }, (_, j) => group.reduce((a, p) => a + p[j], 0) / group.length)
 }
 
 export function countDistinct(points) {
-  return new Set(points.map((p) => `${p[0]},${p[1]}`)).size
+  return new Set(points.map((p) => p.join(','))).size
 }
 
 // Reads the first two cells of every line. A header row or any line that is
@@ -112,7 +120,7 @@ function lloyd(points, initial) {
     centroids = centroids.map((c, i) => {
       const g = points.filter((_, idx) => assign[idx] === i)
       if (!g.length) return c
-      const m = [g.reduce((a, p) => a + p[0], 0) / g.length, g.reduce((a, p) => a + p[1], 0) / g.length]
+      const m = meanOf(g, c.length)
       moved += dist(m, c)
       return m
     })

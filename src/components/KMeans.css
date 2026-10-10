@@ -476,3 +476,84 @@
   width: auto;
   padding: 6px 12px;
 }
+
+/* ---------- datasets, axes, cost ---------- */
+.kmeans .datasetChoices .guessBtn {
+  text-align: left;
+}
+
+.kmeans .guessBtn.active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+
+.kmeans .axisPicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  margin: 0 0 8px;
+}
+
+.kmeans .axisPicker .note {
+  margin: 0;
+}
+
+.kmeans .axisPicker select {
+  font-family: inherit;
+  font-size: 13px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--paper-card);
+  color: var(--ink);
+}
+
+.kmeans .costBox {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 12px 14px;
+  margin: 12px 0 0;
+}
+
+.kmeans .costBox .formula {
+  display: inline-block;
+  margin: 4px 0 6px;
+}
+
+.kmeans .costSvg {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  display: block;
+}
+
+.kmeans .labelCompare td,
+.kmeans .labelCompare th {
+  text-align: center;
+}
+
+.kmeans .labelCompare .lcMax {
+  font-weight: 700;
+  color: var(--blue);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .kmeans .costBox {
+    grid-template-columns: 1fr;
+  }
+}

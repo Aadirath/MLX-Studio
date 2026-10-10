@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useParams } from 'react-router-dom'
 import { QUIZ, TOPICS } from '../data/topics.js'
-import { LAB_CONTENT, LAB_SECTIONS, LAB_SECTION_IDS, PRETEST_ITEMS } from '../data/labContent.js'
+import { ASSUMPTIONS, LAB_CONTENT, LAB_SECTIONS, LAB_SECTION_IDS, PRETEST_ITEMS } from '../data/labContent.js'
 import { scoreOn, useSession } from '../context/SessionContext.jsx'
 import AssessmentRunner from '../components/AssessmentRunner.jsx'
 import VideoEmbed from '../components/VideoEmbed.jsx'
@@ -154,6 +154,69 @@ function TheorySection({ topic, content }) {
           {block.note && <p className="theoryNote">{block.note}</p>}
         </section>
       ))}
+    </div>
+  )
+}
+
+function AssumptionsSection({ topic, a }) {
+  return (
+    <div className="labCard">
+      <p className="labKicker">Assumptions</p>
+      <h1>Cost, assumptions and when to use {topic.name.toLowerCase()}</h1>
+
+      <section className="costCard">
+        <p className="sectionLabel">Cost function: the number the algorithm makes as small as possible</p>
+        <p className="costName">{a.cost.name}</p>
+        <div className="theoryFormula">{a.cost.formula}</div>
+        <p className="theoryNote">{a.cost.meaning}</p>
+      </section>
+
+      <h2 className="labH2">What the data must look like</h2>
+      <div className="assumeTableWrap">
+        <table className="assumeTable">
+          <thead>
+            <tr>
+              <th>Assumption</th>
+              <th>In plain words</th>
+              <th>How to check</th>
+              <th>If it is broken</th>
+            </tr>
+          </thead>
+          <tbody>
+            {a.list.map((row) => (
+              <tr key={row.name}>
+                <th scope="row">{row.name}</th>
+                <td>{row.plain}</td>
+                <td>{row.check}</td>
+                <td>{row.broken}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="useAvoid">
+        <div className="useCol">
+          <h2 className="labH2">Use it when</h2>
+          <ul>
+            {a.use.map((u) => (
+              <li key={u}>{u}</li>
+            ))}
+          </ul>
+        </div>
+        <div className="avoidCol">
+          <h2 className="labH2">Avoid it when</h2>
+          <ul>
+            {a.avoid.map((u) => (
+              <li key={u}>{u}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <p className="tryIt">
+        <b>See an assumption break:</b> {a.tryIt}
+      </p>
     </div>
   )
 }
@@ -340,6 +403,7 @@ function LabPage() {
   let body
   if (section === 'aim') body = <AimSection topicId={topicId} topic={topic} content={content} />
   else if (section === 'theory') body = <TheorySection topic={topic} content={content} />
+  else if (section === 'assumptions') body = <AssumptionsSection topic={topic} a={ASSUMPTIONS[topicId]} />
   else if (section === 'pretest') body = <PretestSection key={topicId} topicId={topicId} topic={topic} />
   else if (section === 'procedure') body = <ProcedureSection topicId={topicId} content={content} />
   else if (section === 'simulation') body = <Simulation />

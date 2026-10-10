@@ -4,6 +4,7 @@ import { createSonifier } from '../utils/sound.js'
 import SoundToggle from './SoundToggle.jsx'
 import GradientDescentCompare from './GradientDescentCompare.jsx'
 import './GradientDescent.css'
+import DataTable from './DataTable.jsx'
 
 const range = (n) => Array.from({ length: n }, (_, i) => i + 1)
 
@@ -583,6 +584,17 @@ function GradientDescent({ onStateDescription, onExperiment } = {}) {
         ))}
       </div>
       <p className="note">{d.description}</p>
+      <details className="gdData">
+        <summary>View the data ({d.X.length} rows)</summary>
+        <DataTable
+          columns={[
+            { label: d.xLabel, role: 'feature' },
+            { label: d.yLabel, role: 'target' },
+          ]}
+          rows={d.X.map((x, i) => [x, d.Y[i]])}
+          maxHeight={480}
+        />
+      </details>
     </div>
   )
 
@@ -662,7 +674,7 @@ function GradientDescent({ onStateDescription, onExperiment } = {}) {
         <p className="note">Each step moves in the steepest downhill direction on this surface, the same idea as rolling a ball down a hill.</p>
         <div>
           <div className="note" style={{ marginBottom: 6 }}>
-            Error (darker = worse)
+            Cost J (darker = higher)
           </div>
           <div className="legendBar" />
           <div className="legendLabels">
@@ -681,10 +693,10 @@ function GradientDescent({ onStateDescription, onExperiment } = {}) {
               Step <b>{state.step}</b>
             </span>
             <span>
-              Error (MSE) <b className="mseVal">{m.toFixed(3)}</b>
+              Cost J (MSE) <b className="mseVal">{m.toFixed(3)}</b>
             </span>
             <span>
-              Lowest possible error <b>{d.minErr.toFixed(3)}</b>
+              Lowest possible cost <b>{d.minErr.toFixed(3)}</b>
             </span>
           </div>
         </div>

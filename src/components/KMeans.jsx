@@ -9,12 +9,16 @@ import {
   MIN_POINTS,
   computeBounds,
   countDistinct,
+  dist,
   elbowCurve,
   findElbow,
+  meanOf,
   parseTwoColumnCsv,
   seedCentroids,
   validatePoints,
 } from './kmeansData.js'
+import { IRIS_FEATURES, IRIS_LABELS, IRIS_POINTS, IRIS_SPECIES, RING_LABELS, RING_POINTS } from './kmeansDatasets.js'
+import DataTable from './DataTable.jsx'
 import './KMeans.css'
 
 const POINTS = [
@@ -55,10 +59,6 @@ function isPointList(v) {
     v.length <= MAX_POINTS &&
     v.every((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isFinite))
   )
-}
-
-function dist(a, b) {
-  return Math.hypot(a[0] - b[0], a[1] - b[1])
 }
 
 function makeScale(xMin, xMax, yMin, yMax, padL, padR, padT, padB, W, H) {
@@ -106,7 +106,7 @@ function computeStep(points, sim, guess, focusIdx) {
 
   const groups = centroids.map((_, i) => points.filter((_, idx) => newAssign[idx] === i))
   const means = groups.map((g, i) =>
-    g.length ? [g.reduce((a, p) => a + p[0], 0) / g.length, g.reduce((a, p) => a + p[1], 0) / g.length] : centroids[i],
+    g.length ? meanOf(g, centroids[i].length) : centroids[i],
   )
   const moved = means.reduce((s, mn, i) => s + dist(mn, centroids[i]), 0)
   const nextIter = sim.iter + 1
@@ -189,7 +189,7 @@ function Legend({ k }) {
   )
 }
 
-function ChartFrame({ scale, bounds, children }) {
+function ChartFrame({ scale, bounds, xLabel = 'x', yLabel = 'y', children }) {
   const { px, py } = scale
   const midY = py((bounds.yMin + bounds.yMax) / 2)
   return (
@@ -209,10 +209,10 @@ function ChartFrame({ scale, bounds, children }) {
         {fmtTick(bounds.yMax)}
       </text>
       <text className="axLbl" x={(px(bounds.xMin) + px(bounds.xMax)) / 2} y="332" textAnchor="middle">
-        x
+        {xLabel}
       </text>
       <text className="axLbl" x="12" y={midY} textAnchor="middle" transform={`rotate(-90 12 ${midY})`}>
-        y
+        {yLabel}
       </text>
       {children}
     </svg>
@@ -287,12 +287,184 @@ function totalSpread(points, sim) {
   return points.reduce((s, p, i) => s + dist(p, sim.centroids[sim.assign[i]]) ** 2, 0)
 }
 
+// ---------- datasets ----------
+const DATASETS = {
+  example: {
+    name: 'Two groups',
+    short: 'example data',
+    features: ['x', 'y'],
+    unit: '',
+    points: POINTS,
+    labels: null,
+    defaultAxes: [0, 1],
+    note: '16 points, 2 features (x, y). Two clear groups.',
+  },
+  iris: {
+    name: 'Iris flowers (4 features)',
+    short: 'Iris data',
+    features: IRIS_FEATURES,
+    unit: 'cm',
+    points: IRIS_POINTS,
+    labels: IRIS_LABELS,
+    labelName: 'Species',
+    labelNames: IRIS_SPECIES,
+    defaultAxes: [2, 3],
+    note: '150 flowers, 4 measurements each. K-Means uses all 4 features; you choose which 2 to plot. The species column is the real answer, hidden from K-Means.',
+  },
+  rings: {
+    name: 'Two rings (breaks an assumption)',
+    short: 'rings data',
+    features: ['x', 'y'],
+    unit: '',
+    points: RING_POINTS,
+    labels: RING_LABELS,
+    labelName: 'Ring',
+    labelNames: ['inner', 'outer'],
+    defaultAxes: [0, 1],
+    note: '60 points in two rings, one inside the other. The groups are rings, not round blobs, which breaks a K-Means assumption.',
+  },
+}
+const DATASET_IDS = Object.keys(DATASETS)
+const CUSTOM_META = {
+  name: 'Your own data',
+  short: 'own data',
+  features: ['x', 'y'],
+  unit: '',
+  labels: null,
+  defaultAxes: [0, 1],
+  note: 'Your points, 2 features (x, y).',
+}
+
+function AxisPicker({ features, axes, onChange }) {
+  if (features.length <= 2) return null
+  return (
+    <div className="axisPicker" role="group" aria-label="Features to plot">
+      <span className="note">Plot</span>
+      <label>
+        <span className="srOnly">Horizontal axis</span>
+        <select value={axes[0]} onChange={(e) => onChange([Number(e.target.value), axes[1]])}>
+          {features.map((f, i) => (
+            <option key={f} value={i} disabled={i === axes[1]}>
+              {f}
+            </option>
+          ))}
+        </select>
+      </label>
+      <span className="note">against</span>
+      <label>
+        <span className="srOnly">Vertical axis</span>
+        <select value={axes[1]} onChange={(e) => onChange([axes[0], Number(e.target.value)])}>
+          {features.map((f, i) => (
+            <option key={f} value={i} disabled={i === axes[0]}>
+              {f}
+            </option>
+          ))}
+        </select>
+      </label>
+      <span className="note">
+        K-Means always uses all {features.length} features; this only changes the view.
+      </span>
+    </div>
+  )
+}
+
+// Cost J after each iteration: it can only go down or stay the same.
+const CC = { W: 300, H: 120, l: 40, r: 10, t: 10, b: 24 }
+function CostChart({ costs }) {
+  if (costs.length < 1) return <p className="note">The cost appears after the first step.</p>
+  const pw = CC.W - CC.l - CC.r
+  const ph = CC.H - CC.t - CC.b
+  const n = Math.max(costs.length, 2)
+  const maxC = Math.max(...costs)
+  const minC = Math.min(...costs)
+  // Zoomed to the range of values so small drops stay visible; the axis labels show the real numbers.
+  const lo = minC - (maxC - minC) * 0.15 || minC * 0.95
+  const hi = maxC + (maxC - minC) * 0.15 || maxC * 1.05
+  const x = (i) => CC.l + (i / (n - 1)) * pw
+  const y = (c) => CC.t + ph - ((c - lo) / (hi - lo || 1)) * ph
+  const d = costs.map((c, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(c).toFixed(1)}`).join(' ')
+  return (
+    <svg
+      viewBox={`0 0 ${CC.W} ${CC.H}`}
+      className="costSvg"
+      role="img"
+      aria-label={`Cost J after each iteration: ${costs.map((c) => c.toFixed(2)).join(', ')}`}
+    >
+      <line x1={CC.l} x2={CC.l + pw} y1={CC.t + ph} y2={CC.t + ph} stroke="var(--line)" />
+      <line x1={CC.l} x2={CC.l} y1={CC.t} y2={CC.t + ph} stroke="var(--line)" />
+      <text className="axLbl" x={CC.l - 5} y={y(maxC) + 3} textAnchor="end">
+        {fmtTick(maxC)}
+      </text>
+      {minC !== maxC && (
+        <text className="axLbl" x={CC.l - 5} y={y(minC) + 3} textAnchor="end">
+          {fmtTick(minC)}
+        </text>
+      )}
+      <text className="axLbl" x={CC.l + pw / 2} y={CC.H - 4} textAnchor="middle">
+        Iteration
+      </text>
+      <path d={d} fill="none" stroke="var(--blue)" strokeWidth="2" />
+      {costs.map((c, i) => (
+        <circle key={i} cx={x(i)} cy={y(c)} r="3.5" fill="var(--blue)" stroke="var(--paper-card)" strokeWidth="1.5">
+          <title>{`Iteration ${i + 1}: J = ${c.toFixed(2)}`}</title>
+        </circle>
+      ))}
+    </svg>
+  )
+}
+
+// Clusters found vs. the real labels K-Means never saw.
+function LabelCompare({ meta, assign, k }) {
+  if (!meta.labels) return null
+  const counts = Array.from({ length: k }, () => meta.labelNames.map(() => 0))
+  assign.forEach((c, i) => {
+    if (c !== null && c !== undefined) counts[c][meta.labels[i]] += 1
+  })
+  const purity = counts.reduce((a, row) => a + Math.max(...row), 0) / assign.length
+  return (
+    <div className="formalBox">
+      <p className="formalLabel">Check against the real answer</p>
+      <p className="formalTerm">Clusters found vs. {meta.labelName.toLowerCase()}</p>
+      <table className="exampleTable labelCompare">
+        <thead>
+          <tr>
+            <th>Cluster</th>
+            {meta.labelNames.map((n) => (
+              <th key={n}>{n}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {counts.map((row, i) => (
+            <tr key={i}>
+              <td>
+                <MarkerIcon index={i} /> {i + 1}
+              </td>
+              {row.map((v, j) => (
+                <td key={j} className={v && v === Math.max(...row) ? 'lcMax' : ''}>
+                  {v}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p>
+        {Math.round(purity * 100)}% of points sit in a cluster whose majority matches their own{' '}
+        {meta.labelName.toLowerCase()}. K-Means never saw these labels: it only used distances.
+        {meta === DATASETS.rings &&
+          ' The rings are mixed up because K-Means assumes round, compact groups around a centre. A ring has no such centre.'}
+      </p>
+    </div>
+  )
+}
+
 // ---------- elbow plot: was K a good choice? ----------
 const EW = 440
 const EH = 240
 const EPAD = { l: 56, r: 20, t: 18, b: 40 }
 
-function ElbowPanel({ points, isExample, k, onTryK }) {
+function ElbowPanel({ points, isExample, k, onTryK, extraNote = '' }) {
   const curve = useMemo(() => elbowCurve(points, isExample), [points, isExample])
   const elbow = useMemo(() => findElbow(curve), [curve])
   const [guess, setGuess] = useState(null)
@@ -327,14 +499,14 @@ function ElbowPanel({ points, isExample, k, onTryK }) {
       <p className="sectionLabel">Was K = {k} a good choice? The elbow plot</p>
       <p className="note">
         K-Means was run for every K from 1 to {maxK} on this same data (keeping the best of several starts), and each
-        run&apos;s total spread (SSE) is plotted below. SSE keeps shrinking as K grows, so the lowest point is not the
+        run&apos;s cost J (SSE) is plotted below. J keeps shrinking as K grows, so the lowest point is not the
         answer. Look for the <b>elbow</b>: the K after which adding another cluster stops helping much.
       </p>
       <svg
         viewBox={`0 0 ${EW} ${EH}`}
         className="elbowSvg"
         role="img"
-        aria-label={`Elbow plot: total spread for K = 1 to ${maxK}. ${curve.map((c) => `K ${c.k}: ${c.sse.toFixed(1)}`).join(', ')}.`}
+        aria-label={`Elbow plot: cost J for K = 1 to ${maxK}. ${curve.map((c) => `K ${c.k}: ${c.sse.toFixed(1)}`).join(', ')}.`}
         onMouseLeave={() => setHoverK(null)}
       >
         {yTicks.map((v) => (
@@ -354,7 +526,7 @@ function ElbowPanel({ points, isExample, k, onTryK }) {
           Number of clusters K
         </text>
         <text className="axLbl" x="12" y={EPAD.t + plotH / 2} textAnchor="middle" transform={`rotate(-90 12 ${EPAD.t + plotH / 2})`}>
-          Total spread (SSE)
+          Cost J (SSE)
         </text>
         {hovered && (
           <line x1={px(hovered.k)} x2={px(hovered.k)} y1={EPAD.t} y2={EPAD.t + plotH} stroke="var(--muted)" strokeDasharray="3 3" />
@@ -396,7 +568,7 @@ function ElbowPanel({ points, isExample, k, onTryK }) {
       </svg>
       <p className="elbowReadout" aria-live="polite">
         {hovered
-          ? `K = ${hovered.k}: total spread ${hovered.sse.toFixed(2)}${prevOfHovered !== null && prevOfHovered !== undefined ? `, ${(prevOfHovered - hovered.sse).toFixed(2)} less than K = ${hovered.k - 1}` : ''}`
+          ? `K = ${hovered.k}: cost J ${hovered.sse.toFixed(2)}${prevOfHovered !== null && prevOfHovered !== undefined ? `, ${(prevOfHovered - hovered.sse).toFixed(2)} less than K = ${hovered.k - 1}` : ''}`
           : 'Hover over the chart to read each value.'}
       </p>
       {!revealed ? (
@@ -418,7 +590,7 @@ function ElbowPanel({ points, isExample, k, onTryK }) {
           <div className={`annotation ${feedback.cls}`}>
             <span className="tag">{feedback.tag}</span>
             {feedback.text} The elbow is a rule of thumb, not a guarantee: always check whether the clusters make
-            sense for your problem.
+            sense for your problem.{extraNote ? ` ${extraNote}` : ''}
           </div>
           {elbow !== k && K_OPTIONS.includes(elbow) && (
             <button type="button" className="btnP" onClick={() => onTryK(elbow)}>
@@ -439,7 +611,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
   const [storedSource, setSource] = useSessionState(
     'mlx.k-means.source',
     'example',
-    (v) => v === 'example' || v === 'custom',
+    (v) => v === 'custom' || DATASET_IDS.includes(v),
   )
   const [customPoints, setCustomPoints] = useSessionState('mlx.k-means.customPoints', [], isPointList)
   const [savedIter, setSavedIter] = useSessionState(
@@ -448,13 +620,26 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
     (v) => Number.isInteger(v) && v >= 0 && v <= MAX_ITERS,
   )
   // Saved custom data only counts if it still passes validation.
-  const source = storedSource === 'custom' && validatePoints(customPoints, k) === null ? 'custom' : 'example'
+  const source =
+    storedSource === 'custom' ? (validatePoints(customPoints, k) === null ? 'custom' : 'example') : storedSource
   const isExample = source === 'example'
-  const points = isExample ? POINTS : customPoints
+  const meta = source === 'custom' ? CUSTOM_META : DATASETS[source]
+  const points = source === 'custom' ? customPoints : meta.points
+  const dims = points[0].length
+  const [storedAxes, setAxes] = useSessionState(
+    'mlx.k-means.axes',
+    [0, 1],
+    (v) => Array.isArray(v) && v.length === 2 && v.every(Number.isInteger),
+  )
+  const axes =
+    storedAxes[0] < dims && storedAxes[1] < dims && storedAxes[0] !== storedAxes[1] ? storedAxes : meta.defaultAxes
+  const proj = useMemo(() => points.map((p) => [p[axes[0]], p[axes[1]]]), [points, axes])
+  const project = (c) => [c[axes[0]], c[axes[1]]]
+  const axisLabel = (i) => `${meta.features[i]}${meta.unit ? ` (${meta.unit})` : ''}`
 
-  const [editing, setEditing] = useState(!isExample)
+  const [editing, setEditing] = useState(source === 'custom')
   const [draftRows, setDraftRows] = useState(() =>
-    isExample
+    source !== 'custom'
       ? Array.from({ length: MIN_POINTS }, () => ({ x: '', y: '' }))
       : customPoints.map((p) => ({ x: String(p[0]), y: String(p[1]) })),
   )
@@ -497,7 +682,17 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
   // The run is deterministic from the seeded centres, so the first iteration's spread is the same every time.
   const sseFirst = useMemo(() => totalSpread(points, replaySim(points, k, isExample, 1).sim), [points, k, isExample])
   const distinctCount = useMemo(() => countDistinct(points), [points])
-  const bounds = useMemo(() => (isExample ? EXAMPLE_BOUNDS : computeBounds(points)), [isExample, points])
+  const bounds = useMemo(() => (isExample ? EXAMPLE_BOUNDS : computeBounds(proj)), [isExample, proj])
+  // Cost J after each iteration so far (replayed: the run is deterministic from the seeded centres).
+  const costHistory = useMemo(() => {
+    const out = []
+    let s0 = makeInitialSim(points, k, isExample)
+    for (let i = 0; i < sim.iter; i++) {
+      s0 = computeStep(points, s0, null, null).sim
+      out.push(totalSpread(points, s0))
+    }
+    return out
+  }, [points, k, isExample, sim.iter])
   const scale = useMemo(
     () => makeScale(bounds.xMin, bounds.xMax, bounds.yMin, bounds.yMax, 44, 16, 14, 36, 560, 340),
     [bounds],
@@ -524,9 +719,9 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
   useEffect(() => {
     const finished = sim.converged ? ' Converged.' : sim.limit ? ` Stopped at the ${MAX_ITERS} iteration limit.` : ''
     onStateDescription?.(
-      `Stage "${stage}". K = ${k}. ${points.length} points (${isExample ? 'example data' : 'learner-supplied data'}). Iteration ${sim.iter}.${finished} ${running ? 'Auto-running.' : 'Paused.'}`,
+      `Stage "${stage}". K = ${k}. ${points.length} points, ${dims} features (${meta.short}). Iteration ${sim.iter}.${finished} Cost J (SSE) ${spread === null ? 'not computed yet' : spread.toFixed(2)}. ${running ? 'Auto-running.' : 'Paused.'}`,
     )
-  }, [stage, k, points.length, isExample, sim.iter, sim.converged, sim.limit, running, onStateDescription])
+  }, [stage, k, points.length, dims, meta.short, sim.iter, sim.converged, sim.limit, running, spread, onStateDescription])
 
   // Any change of data or K starts the simulation again from the seeded centres.
   function resetAll(pts, kk, example) {
@@ -565,12 +760,19 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
     return true
   }
 
-  function useExample() {
-    setSource('example')
+  function chooseDataset(id) {
+    const m = DATASETS[id]
+    setSource(id)
     setEditing(false)
     setDataError('')
     setDataInfo('')
-    resetAll(POINTS, k, true)
+    setAxes(m.defaultAxes)
+    resetAll(m.points, k, id === 'example')
+  }
+
+  function startOwnData() {
+    setEditing(true)
+    setAxes([0, 1])
   }
 
   function updateDraft(index, field, value) {
@@ -649,7 +851,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
     setStage('stepping')
   }
 
-  // One tone per iteration: pitch rises with total spread relative to the first iteration.
+  // One tone per iteration: pitch rises with cost J relative to the first iteration.
   function playFor(next) {
     if (!soundOnRef.current || next.iter === 0) return
     try {
@@ -660,7 +862,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
       sonifierRef.current.playStep({ freq, pan: 0 })
       if (next.converged) sonifierRef.current.playResolve()
       setSoundNote(
-        `Sound played: total spread ${sse.toFixed(2)}, pitch ${Math.round(freq)} Hz.${next.converged ? ' The clusters stopped changing: the two-note chime played.' : ''}`,
+        `Sound played: cost J ${sse.toFixed(2)}, pitch ${Math.round(freq)} Hz.${next.converged ? ' The clusters stopped changing: the two-note chime played.' : ''}`,
       )
     } catch {
       // sound is optional
@@ -683,7 +885,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
         ? `converged in ${next.iter} iterations`
         : `stopped at the ${MAX_ITERS} iteration limit without converging`
       onExperimentRef.current?.(
-        `K=${k}, ${isExample ? 'example data' : 'own data'}, ${points.length} points: ${outcome}, total spread ${totalSpread(points, next).toFixed(1)}, cluster sizes ${sizes.join(', ')}`,
+        `K=${k}, ${meta.short} (${dims} features), ${points.length} points: ${outcome}, cost J (SSE) ${totalSpread(points, next).toFixed(1)}, cluster sizes ${sizes.join(', ')}`,
       )
     }
     return result.sim.done
@@ -750,22 +952,30 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
       <div className="kmeans">
         <div className="kmeans-controls">
           <p className="storyText">
-            Before grouping anything, let's get familiar with the raw data. Each row below is one point, described
-            by two numbers.
+            Before grouping anything, get familiar with the raw data. Each row is one data point; each column is one
+            <b> feature</b> (a measured property). K-Means uses only the features.
           </p>
-          <p className="note">
-            <b>x</b> and <b>y</b> are just its coordinates, the same way you'd plot a point on graph paper.
-          </p>
-          <div className="btnCol">
-            {editing ? (
-              <button className="btnG" onClick={useExample}>
-                Back to the example data
+          <p className="note">Choose a dataset:</p>
+          <div className="btnCol datasetChoices">
+            {DATASET_IDS.map((id) => (
+              <button
+                key={id}
+                type="button"
+                className={`guessBtn${!editing && source === id ? ' active' : ''}`}
+                aria-pressed={!editing && source === id}
+                onClick={() => chooseDataset(id)}
+              >
+                {DATASETS[id].name}
               </button>
-            ) : (
-              <button className="btnG" onClick={() => setEditing(true)}>
-                Use your own data
-              </button>
-            )}
+            ))}
+            <button
+              type="button"
+              className={`guessBtn${editing ? ' active' : ''}`}
+              aria-pressed={editing}
+              onClick={startOwnData}
+            >
+              Your own data (type or CSV)
+            </button>
           </div>
           <div className="stageActions">
             <button className="btnP" onClick={() => setStage('group')} disabled={!canContinue}>
@@ -778,24 +988,18 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
         </div>
         <div className="kmeans-main">
           {!editing ? (
-            <table className="exampleTable">
-              <thead>
-                <tr>
-                  <th>Point</th>
-                  <th>x</th>
-                  <th>y</th>
-                </tr>
-              </thead>
-              <tbody>
-                {POINTS.map((p, i) => (
-                  <tr key={i}>
-                    <td>#{i + 1}</td>
-                    <td>{p[0]}</td>
-                    <td>{p[1]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <>
+              <p className="note">{meta.note}</p>
+              <DataTable
+                columns={[
+                  ...meta.features.map((f) => ({ label: f, unit: meta.unit, role: 'feature' })),
+                  ...(meta.labels
+                    ? [{ label: meta.labelName, role: 'label', format: (v) => meta.labelNames[v] }]
+                    : []),
+                ]}
+                rows={points.map((p, i) => (meta.labels ? [...p, meta.labels[i]] : p))}
+              />
+            </>
           ) : (
             <div className="dataEditor">
               <p className="note">
@@ -885,6 +1089,10 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
       kNote = 'Two groups looks like a fair call here, there does seem to be a cluster bottom-left and one top-right.'
     } else if (isExample) {
       kNote = `${k} groups is more than the two clusters that stand out visually. Let's see what K-Means does with the extra ones.`
+    } else if (source === 'iris') {
+      kNote = `There are 3 species of iris, but K-Means does not know that. It will make exactly ${k} groups from the 4 measurements. Try other feature pairs: some separate the groups better than others.`
+    } else if (source === 'rings') {
+      kNote = `Two rings, so K = 2 looks natural. Predict: will K-Means separate the inner ring from the outer one?`
     } else {
       kNote = `K-Means will split your data into exactly ${k} groups, whether or not that matches its natural shape.`
     }
@@ -926,8 +1134,9 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
           <div className="chartRow">
             <span className="chartTitle">{points.length} points, no groups yet</span>
           </div>
-          <ChartFrame scale={scale} bounds={bounds}>
-            <PointDots points={points} scale={scale} assign={points.map(() => null)} />
+          <AxisPicker features={meta.features} axes={axes} onChange={setAxes} />
+          <ChartFrame scale={scale} bounds={bounds} xLabel={axisLabel(axes[0])} yLabel={axisLabel(axes[1])}>
+            <PointDots points={proj} scale={scale} assign={points.map(() => null)} />
           </ChartFrame>
           <div className="annotation">{kNote}</div>
         </div>
@@ -943,7 +1152,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
     } else if (isExample) {
       centreNote = `The first centre starts at (1.5, 1.5). Each further centre is placed on the point farthest from the centres already chosen.`
     } else {
-      centreNote = `The first centre starts on your first point. Each further centre is placed on the point farthest from the centres already chosen.`
+      centreNote = `The first centre starts on the first data point. Each further centre is placed on the point farthest from the centres already chosen.`
     }
     return (
       <div className="kmeans">
@@ -966,9 +1175,10 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
           <div className="chartRow">
             <span className="chartTitle">{`${points.length} points, ${k} starting centres`}</span>
           </div>
-          <ChartFrame scale={scale} bounds={bounds}>
-            <PointDots points={points} scale={scale} assign={points.map(() => null)} />
-            <CentroidMarks scale={scale} centroids={sim.centroids} />
+          <AxisPicker features={meta.features} axes={axes} onChange={setAxes} />
+          <ChartFrame scale={scale} bounds={bounds} xLabel={axisLabel(axes[0])} yLabel={axisLabel(axes[1])}>
+            <PointDots points={proj} scale={scale} assign={points.map(() => null)} />
+            <CentroidMarks scale={scale} centroids={sim.centroids.map(project)} />
           </ChartFrame>
           <Legend k={k} />
           <div className="annotation">
@@ -981,7 +1191,11 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
 
   // ---------- stage: distance (formal assignment rule, worked example) ----------
   if (stage === 'distance') {
-    const p0 = points[0]
+    // The example data's centres are hand-placed away from point 1; elsewhere the first centre sits on point 1,
+    // so a point from the middle of the table makes a more useful worked example.
+    const p0Idx = isExample ? 0 : Math.floor(points.length / 2)
+    const p0 = points[p0Idx]
+    const sq = (v) => (v < 0 ? `(−${Math.abs(v).toFixed(1)})²` : `${v.toFixed(1)}²`)
     const dists = sim.centroids.map((c) => dist(p0, c))
     const nearest = dists.indexOf(Math.min(...dists))
 
@@ -1003,19 +1217,22 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
             <p className="formalLabel">Formal definition</p>
             <p className="formalTerm">Euclidean distance</p>
             <span className="formula">
-              d(p, c) = √((x<sub>p</sub> − x<sub>c</sub>)² + (y<sub>p</sub> − y<sub>c</sub>)²)
+              d(p, c) = √( Σ<sub>j</sub> (p<sub>j</sub> − c<sub>j</sub>)² )
             </span>
-            <p>Just the straight-line distance between two points, nothing fancier.</p>
+            <p>
+              The straight-line distance between two points. With {dims} features, j runs over all {dims} of them:
+              square the difference in each feature, add them up, take the square root.
+            </p>
           </div>
           <div className="formalBox">
             <p className="formalLabel">Worked example</p>
             <p className="formalTerm">
-              Point ({p0[0]}, {p0[1]})
+              Point {p0Idx + 1} = ({p0.join(', ')})
             </p>
             {sim.centroids.map((c, i) => (
               <p key={i}>
-                Distance to {COLOR_NAMES[i]} centre ({c[0].toFixed(1)}, {c[1].toFixed(1)}): d = √(
-                {(p0[0] - c[0]).toFixed(1)}² + {(p0[1] - c[1]).toFixed(1)}²) = <b>{dists[i].toFixed(2)}</b>
+                Distance to {COLOR_NAMES[i]} centre ({c.map((v) => v.toFixed(1)).join(', ')}): d = √(
+                {p0.map((v, j) => sq(v - c[j])).join(' + ')}) = <b>{dists[i].toFixed(2)}</b>
               </p>
             ))}
             <p>
@@ -1034,7 +1251,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
     <div className="kmeans kmeans--with-nav">
       <div className="kmeans-controls">
         <p className="note">
-          {isExample ? 'Dataset: example data.' : 'Dataset: your own data.'} K = {k}.
+          Dataset: {meta.name}. {dims} features. K = {k}.
         </p>
         {!awaitingGuess ? (
           <div className="btnCol">
@@ -1066,7 +1283,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
         <SoundToggle
           checked={soundOn}
           onChange={setSoundOn}
-          legend="Higher pitch means more total spread. A two-note chime means the clusters stopped changing."
+          legend="Higher pitch means a higher cost J. A two-note chime means the clusters stopped changing."
           status={soundNote}
         />
       </div>
@@ -1076,8 +1293,8 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
           <span className="chartTitle">{`${points.length} points, ${k} clusters`}</span>
           <div className="readouts">
             {sim.limit && <span>Stopped at the {MAX_ITERS} iteration limit</span>}
-            <span>
-              Total spread (SSE) <b>{spread === null ? '' : spread.toFixed(2)}</b>
+            <span title="Cost J = sum of squared distances from each point to its own centre (SSE)">
+              Cost J (SSE) <b>{spread === null ? '–' : spread.toFixed(2)}</b>
             </span>
             <span>
               Iteration <b>{sim.iter}</b>
@@ -1085,11 +1302,26 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
           </div>
         </div>
 
-        <ChartFrame scale={scale} bounds={bounds}>
-          <PointDots points={points} scale={scale} assign={sim.assign} highlightIdx={awaitingGuess ? focusIdx : null} />
-          <CentroidMarks scale={scale} centroids={sim.centroids} />
+        <AxisPicker features={meta.features} axes={axes} onChange={setAxes} />
+        <ChartFrame scale={scale} bounds={bounds} xLabel={axisLabel(axes[0])} yLabel={axisLabel(axes[1])}>
+          <PointDots points={proj} scale={scale} assign={sim.assign} highlightIdx={awaitingGuess ? focusIdx : null} />
+          <CentroidMarks scale={scale} centroids={sim.centroids.map(project)} />
         </ChartFrame>
         <Legend k={k} />
+
+        <div className="costBox">
+          <div>
+            <p className="sectionLabel">Cost function J (what K-Means minimises)</p>
+            <span className="formula">
+              J = Σ<sub>k</sub> Σ<sub>x ∈ C<sub>k</sub></sub> ‖x − c<sub>k</sub>‖²
+            </span>
+            <p className="note">
+              Add up the squared distance from every point to its own cluster centre. Smaller J means tighter clusters.
+              Each assign step and each update step can only lower J or leave it the same.
+            </p>
+          </div>
+          <CostChart costs={costHistory} />
+        </div>
 
         {annotation && (
           <div
@@ -1115,7 +1347,20 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
                   : `Repeated assign and update until the ${MAX_ITERS} iteration limit, when the centres were still moving`}
               </li>
             </ol>
-            <ElbowPanel points={points} isExample={isExample} k={k} onTryK={changeK} />
+            <LabelCompare meta={meta} assign={sim.assign} k={k} />
+            <ElbowPanel
+              points={points}
+              isExample={isExample}
+              k={k}
+              onTryK={changeK}
+              extraNote={
+                source === 'iris'
+                  ? 'Here the data has 3 real species, but the elbow suggests 2: two of the species overlap in their measurements. The elbow only sees distances, not the truth.'
+                  : source === 'rings'
+                    ? 'No K gives a clean bend here, because no number of round clusters fits two rings. The real fix is a different algorithm, not a different K.'
+                    : ''
+              }
+            />
             <div className="formalBox">
               <p className="formalLabel">Formal definition</p>
               <p className="formalTerm">Centroid update</p>

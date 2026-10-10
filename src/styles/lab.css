@@ -424,3 +424,108 @@
     grid-row: 2;
   }
 }
+
+/* assumptions */
+.paper .labH2 {
+  font-family: 'Lora', serif;
+  font-size: 17px;
+  margin: 22px 0 10px;
+  color: var(--ink);
+}
+
+.paper .costCard {
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 14px 16px;
+  margin-top: 8px;
+}
+
+.paper .costCard .sectionLabel {
+  margin-bottom: 4px;
+}
+
+.paper .costName {
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.paper .assumeTableWrap {
+  overflow-x: auto;
+}
+
+.paper .assumeTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.paper .assumeTable th,
+.paper .assumeTable td {
+  text-align: left;
+  vertical-align: top;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.paper .assumeTable thead th {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 600;
+  background: var(--paper);
+}
+
+.paper .assumeTable tbody th {
+  font-weight: 600;
+  width: 18%;
+}
+
+.paper .assumeTable tbody td:last-child {
+  color: var(--rust);
+}
+
+.paper .useAvoid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.paper .useCol,
+.paper .avoidCol {
+  border: 1px solid var(--line);
+  padding: 0 16px 8px;
+  border-top: 3px solid var(--good);
+}
+
+.paper .avoidCol {
+  border-top-color: var(--rust);
+}
+
+.paper .useCol .labH2,
+.paper .avoidCol .labH2 {
+  margin-top: 12px;
+}
+
+.paper .useAvoid li {
+  font-size: 13.5px;
+  line-height: 1.55;
+  margin-bottom: 6px;
+}
+
+.paper .tryIt {
+  margin: 18px 0 0;
+  padding: 10px 14px;
+  background: var(--blue-soft);
+  border-left: 3px solid var(--blue);
+  font-size: 13.5px;
+}
+
+@media (max-width: 860px) {
+  .paper .useAvoid {
+    grid-template-columns: 1fr;
+  }
+
+  .paper .assumeTable {
+    min-width: 640px;
+  }
+}
