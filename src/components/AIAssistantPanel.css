@@ -1,12 +1,10 @@
 .aiPanel {
   margin-top: 16px;
   padding: 14px 16px;
-  border: 1px solid var(--line);
-  background: var(--paper-card);
 }
 
 .aiTitle {
-  font-family: 'Lora', serif;
+  font-family: var(--font-heading);
   font-size: 15px;
   font-weight: 600;
   margin: 0 0 10px;
@@ -20,19 +18,9 @@
 
 .aiInput {
   flex: 1;
-  font-family: inherit;
   font-size: 13.5px;
   padding: 8px 10px;
-  border: 1px solid var(--line);
-  background: var(--paper);
-  color: var(--ink);
-  border-radius: 5px;
   resize: vertical;
-}
-
-.aiInput:focus {
-  outline: none;
-  border-color: var(--blue);
 }
 
 .aiAsk:disabled {
@@ -55,14 +43,14 @@
 }
 
 .aiError {
-  color: var(--rust);
+  color: var(--danger);
   font-size: 12.5px;
 }
 
 .aiText {
   padding: 10px 12px;
-  background: var(--blue-soft);
-  border-left: 3px solid var(--blue);
+  background: var(--primary-soft);
+  border-left: 3px solid var(--primary);
 }
 
 .aiLang {
@@ -76,26 +64,26 @@
   font-family: inherit;
   font-size: 12.5px;
   padding: 5px 10px;
-  background: var(--blue-soft);
-  border: 1px solid var(--blue);
-  border-radius: 5px;
-  color: var(--blue);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-control);
+  color: var(--primary);
   cursor: pointer;
 }
 
 .aiLangBtn:hover,
 .aiNext:hover:not(:disabled) {
-  background: #d5e2ee;
+  background: var(--primary-soft-hover);
 }
 
 .aiLangBtn.active {
-  background: var(--blue);
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary);
 }
 
 .aiLangBtn:focus-visible,
 .aiNext:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
@@ -119,15 +107,15 @@
   font-family: inherit;
   font-size: 12.5px;
   padding: 5px 10px;
-  background: var(--blue-soft);
-  border: 1px solid var(--blue);
-  border-radius: 5px;
-  color: var(--blue);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-control);
+  color: var(--primary);
   cursor: pointer;
 }
 
 .aiListen:hover:not(:disabled) {
-  background: #d5e2ee;
+  background: var(--primary-soft-hover);
 }
 
 .aiListen:disabled {
@@ -136,19 +124,19 @@
 }
 
 .aiListen:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
 .aiSpeechNote {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
 .aiSpeechError {
   margin: 6px 0 0;
   font-size: 12.5px;
-  color: var(--rust);
+  color: var(--danger);
 }
 
 .aiSpeechError:empty {

@@ -12,18 +12,18 @@ function TopicOverviewPage() {
 
   return (
     <section className="paper">
-      <div className="board ovBox">
+      <div className="panel board ovBox">
         <h1>{topic.name}</h1>
         <p className="sub">{topic.blurb}</p>
 
-        <div className="sectionLabel">Learning objectives</div>
+        <div className="panel__label sectionLabel">Learning objectives</div>
         <ul className="objList">
           {topic.objectives.map((objective) => (
             <li key={objective}>{objective}</li>
           ))}
         </ul>
 
-        <div className="sectionLabel">Prerequisites</div>
+        <div className="panel__label sectionLabel">Prerequisites</div>
         <ul className="preList">
           {topic.prereqs.map((prereq) => (
             <li key={prereq}>
@@ -35,14 +35,14 @@ function TopicOverviewPage() {
 
         {topic.video?.youtubeId && (
           <>
-            <div className="sectionLabel">Watch first (optional)</div>
+            <div className="panel__label sectionLabel">Watch first (optional)</div>
             <VideoEmbed video={topic.video} />
           </>
         )}
 
         <div className="ovFooter">
           <span className="pill">{topic.time}</span>
-          <Link className="primaryBtn" to={TOPIC_PLAYGROUND_PATHS[topicId]}>
+          <Link className="btn btn--primary primaryBtn" to={TOPIC_PLAYGROUND_PATHS[topicId]}>
             Start learning
           </Link>
         </div>

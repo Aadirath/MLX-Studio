@@ -74,14 +74,14 @@ function PrevNext({ topicId, current }) {
   return (
     <div className="labPrevNext">
       {prev ? (
-        <Link className="ghostBtn" to={`/topic/${topicId}/${prev.id}`}>
+        <Link className="btn btn--ghost ghostBtn" to={`/topic/${topicId}/${prev.id}`}>
           ← {prev.label}
         </Link>
       ) : (
         <span />
       )}
       {next && (
-        <Link className="primaryBtn" to={`/topic/${topicId}/${next.id}`}>
+        <Link className="btn btn--primary primaryBtn" to={`/topic/${topicId}/${next.id}`}>
           {next.label} →
         </Link>
       )}
@@ -99,7 +99,7 @@ function AimSection({ topicId, topic, content }) {
       <p className="labLead">{content.aim}</p>
       <div className="labTwoCol">
         <div>
-          <div className="sectionLabel">Learning objectives</div>
+          <div className="panel__label sectionLabel">Learning objectives</div>
           <ul className="objList">
             {topic.objectives.map((o) => (
               <li key={o}>{o}</li>
@@ -107,13 +107,13 @@ function AimSection({ topicId, topic, content }) {
           </ul>
         </div>
         <div>
-          <div className="sectionLabel">Prerequisites</div>
+          <div className="panel__label sectionLabel">Prerequisites</div>
           <ul className="objList">
             {topic.prereqs.map((p) => (
               <li key={p}>{p}</li>
             ))}
           </ul>
-          <div className="sectionLabel">Time</div>
+          <div className="panel__label sectionLabel">Time</div>
           <span className="pill">{topic.time}</span>
         </div>
       </div>
@@ -199,10 +199,10 @@ function PretestSection({ topicId, topic }) {
           </p>
           <ScoreBar label="Pretest" score={score} />
           <div className="labActions">
-            <Link className="primaryBtn" to={`/topic/${topicId}/procedure`}>
+            <Link className="btn btn--primary primaryBtn" to={`/topic/${topicId}/procedure`}>
               Continue to the procedure →
             </Link>
-            <button type="button" className="ghostBtn" onClick={() => setRunning(true)}>
+            <button type="button" className="btn btn--ghost ghostBtn" onClick={() => setRunning(true)}>
               Retake pretest
             </button>
           </div>
@@ -213,7 +213,7 @@ function PretestSection({ topicId, topic }) {
             {items.length} quick questions about {topic.name.toLowerCase()}. Answer with your best guess: this is not
             graded and answers are not shown yet. The posttest asks the same questions after the simulation.
           </p>
-          <button type="button" className="primaryBtn" onClick={() => setRunning(true)}>
+          <button type="button" className="btn btn--primary primaryBtn" onClick={() => setRunning(true)}>
             Start the pretest
           </button>
         </>
@@ -232,7 +232,7 @@ function ProcedureSection({ topicId, content }) {
           <li key={step}>{step}</li>
         ))}
       </ol>
-      <Link className="primaryBtn" to={`/topic/${topicId}/simulation`}>
+      <Link className="btn btn--primary primaryBtn" to={`/topic/${topicId}/simulation`}>
         Open the simulation →
       </Link>
     </div>
@@ -281,10 +281,10 @@ function PosttestSection({ topicId }) {
             <ScoreBar label="Full posttest" score={postAllScore} />
           </div>
           <div className="labActions">
-            <Link className="primaryBtn" to={`/topic/${topicId}/summary`}>
+            <Link className="btn btn--primary primaryBtn" to={`/topic/${topicId}/summary`}>
               See session summary
             </Link>
-            <button type="button" className="ghostBtn" onClick={() => setRunning(true)}>
+            <button type="button" className="btn btn--ghost ghostBtn" onClick={() => setRunning(true)}>
               Retake posttest
             </button>
           </div>
@@ -295,7 +295,7 @@ function PosttestSection({ topicId }) {
             {all.length} questions, with the answer and an explanation after each one.
             {!a.pre && ' You skipped the pretest, so there will be no before-and-after comparison.'}
           </p>
-          <button type="button" className="primaryBtn" onClick={() => setRunning(true)}>
+          <button type="button" className="btn btn--primary primaryBtn" onClick={() => setRunning(true)}>
             Start the posttest
           </button>
         </>

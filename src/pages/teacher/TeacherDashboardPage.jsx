@@ -47,7 +47,7 @@ function TeacherDashboardPage() {
 
       <div className="cards">
         {TEACHER_TOPICS.map((topic) => (
-          <div className="card" key={topic.id}>
+          <div className="panel card" key={topic.id}>
             <div className="ico">{topic.ico}</div>
             <h3>{topic.name}</h3>
             <p>{topic.description}</p>
@@ -58,7 +58,7 @@ function TeacherDashboardPage() {
                 </li>
               ))}
             </ul>
-            <Link className="cardBtn" to={topic.path}>
+            <Link className="btn btn--primary cardBtn" to={topic.path}>
               Open Workspace
             </Link>
           </div>

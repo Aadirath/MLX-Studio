@@ -5,8 +5,8 @@
 }
 
 .site-header {
-  border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
 }
 
 .site-header__inner {
@@ -18,7 +18,7 @@
 
 .brand {
   font-weight: 700;
-  color: var(--color-text-strong);
+  color: var(--ink);
 }
 
 .nav {
@@ -28,25 +28,25 @@
 }
 
 .nav a {
-  color: var(--color-text);
+  color: var(--muted);
   text-decoration: none;
   padding: 6px 4px;
   border-bottom: 2px solid transparent;
 }
 
 .nav a:hover {
-  color: var(--color-text-strong);
+  color: var(--ink);
 }
 
 .nav a.active {
-  color: var(--color-text-strong);
-  border-bottom-color: var(--color-accent);
+  color: var(--ink);
+  border-bottom-color: var(--primary);
 }
 
 .theme-toggle {
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-subtle);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: var(--radius-control);
   width: 36px;
   height: 36px;
   cursor: pointer;
@@ -56,7 +56,7 @@
 }
 
 .theme-toggle:hover {
-  border-color: var(--color-accent-border);
+  border-color: var(--primary);
 }
 
 .back-bar {
@@ -64,20 +64,20 @@
 }
 
 .back-button {
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-subtle);
-  color: var(--color-text-strong);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: var(--radius-control);
   padding: 6px 14px;
   cursor: pointer;
 }
 
 .back-button:hover {
-  border-color: var(--color-accent-border);
+  border-color: var(--primary);
 }
 
 .back-button:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 
@@ -91,9 +91,9 @@
 }
 
 .site-footer {
-  border-top: 1px solid var(--color-border);
-  color: var(--color-text);
-  font-size: 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--fs-14);
 }
 
 .site-footer .container {

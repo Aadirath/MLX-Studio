@@ -40,12 +40,12 @@ function QuizPage() {
 
   return (
     <section className="paper">
-      <div className="board quizBox">
+      <div className="panel board quizBox">
         <h1>{topic.name} — check your understanding</h1>
         <p className="sub">
           Question {index + 1} of {bank.length}
         </p>
-        <div className="qCard">
+        <div className="panel qCard">
           <p className="qPrompt">{question.prompt}</p>
           <div className="qOpts">
             {question.opts.map((opt, i) => {
@@ -62,7 +62,7 @@ function QuizPage() {
           {answered && (
             <>
               <p className="qExplain">{question.explain}</p>
-              <button className="primaryBtn" style={{ marginTop: 10 }} onClick={handleNext}>
+              <button className="btn btn--primary primaryBtn" style={{ marginTop: 10 }} onClick={handleNext}>
                 {isLastQuestion ? 'See results' : 'Next question'}
               </button>
             </>

@@ -324,7 +324,7 @@ function ElbowPanel({ points, isExample, k, onTryK }) {
 
   return (
     <div className="elbowPanel">
-      <p className="sectionLabel">Was K = {k} a good choice? The elbow plot</p>
+      <p className="panel__label sectionLabel">Was K = {k} a good choice? The elbow plot</p>
       <p className="note">
         K-Means was run for every K from 1 to {maxK} on this same data (keeping the best of several starts), and each
         run&apos;s total spread (SSE) is plotted below. SSE keeps shrinking as K grows, so the lowest point is not the
@@ -404,11 +404,11 @@ function ElbowPanel({ points, isExample, k, onTryK }) {
           <p className="note">Where does the curve bend?</p>
           <div className="elbowChoices">
             {curve.slice(1, -1).map((c) => (
-              <button key={c.k} type="button" className="guessBtn" onClick={() => setGuess(c.k)}>
+              <button key={c.k} type="button" className="btn btn--secondary guessBtn" onClick={() => setGuess(c.k)}>
                 K = {c.k}
               </button>
             ))}
-            <button type="button" className="btnG" onClick={() => setGuess('skip')}>
+            <button type="button" className="btn btn--ghost btnG" onClick={() => setGuess('skip')}>
               Show me
             </button>
           </div>
@@ -421,7 +421,7 @@ function ElbowPanel({ points, isExample, k, onTryK }) {
             sense for your problem.
           </div>
           {elbow !== k && K_OPTIONS.includes(elbow) && (
-            <button type="button" className="btnP" onClick={() => onTryK(elbow)}>
+            <button type="button" className="btn btn--primary btnP" onClick={() => onTryK(elbow)}>
               Run again with K = {elbow}
             </button>
           )}
@@ -758,17 +758,17 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
           </p>
           <div className="btnCol">
             {editing ? (
-              <button className="btnG" onClick={useExample}>
+              <button className="btn btn--ghost btnG" onClick={useExample}>
                 Back to the example data
               </button>
             ) : (
-              <button className="btnG" onClick={() => setEditing(true)}>
+              <button className="btn btn--ghost btnG" onClick={() => setEditing(true)}>
                 Use your own data
               </button>
             )}
           </div>
           <div className="stageActions">
-            <button className="btnP" onClick={() => setStage('group')} disabled={!canContinue}>
+            <button className="btn btn--primary btnP" onClick={() => setStage('group')} disabled={!canContinue}>
               Now plot these on a graph
             </button>
           </div>
@@ -840,7 +840,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
                         <td>
                           <button
                             type="button"
-                            className="btnG rowBtn"
+                            className="btn btn--ghost btnG rowBtn"
                             onClick={() => removeDraftRow(i)}
                             disabled={draftRows.length <= 1}
                             aria-label={`Remove point ${i + 1}`}
@@ -854,14 +854,14 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
                 </table>
               </div>
               <div className="editorActions">
-                <button type="button" className="btnG" onClick={addDraftRow} disabled={draftRows.length >= MAX_POINTS}>
+                <button type="button" className="btn btn--ghost btnG" onClick={addDraftRow} disabled={draftRows.length >= MAX_POINTS}>
                   Add row
                 </button>
-                <button type="button" className="btnG" onClick={() => fileRef.current && fileRef.current.click()}>
+                <button type="button" className="btn btn--ghost btnG" onClick={() => fileRef.current && fileRef.current.click()}>
                   Upload CSV
                 </button>
                 <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={handleFile} hidden />
-                <button type="button" className="btnP" onClick={applyDraft}>
+                <button type="button" className="btn btn--primary btnP" onClick={applyDraft}>
                   Use these points
                 </button>
               </div>
@@ -900,7 +900,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
             {K_OPTIONS.map((opt) => (
               <button
                 key={opt}
-                className={`guessBtn${k === opt ? ' active' : ''}`}
+                className={`btn btn--secondary guessBtn${k === opt ? ' active' : ''}`}
                 onClick={() => changeK(opt)}
                 disabled={distinctCount < opt}
                 title={distinctCount < opt ? `Your data has only ${distinctCount} distinct points` : undefined}
@@ -917,7 +917,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
             <p className="note">Larger K values need more distinct points than your data has.</p>
           )}
           <div className="stageActions">
-            <button className="btnP" onClick={startCentres}>
+            <button className="btn btn--primary btnP" onClick={startCentres}>
               Continue
             </button>
           </div>
@@ -954,10 +954,10 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
           </p>
           <p className="note">{centreNote}</p>
           <div className="stageActions">
-            <button className="btnG" onClick={startOver}>
+            <button className="btn btn--ghost btnG" onClick={startOver}>
               Back
             </button>
-            <button className="btnP" onClick={() => setStage('distance')}>
+            <button className="btn btn--primary btnP" onClick={() => setStage('distance')}>
               Continue
             </button>
           </div>
@@ -990,17 +990,17 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
         <div className="kmeans-controls">
           <p className="storyText">How does K-Means actually decide which centre a point joins? With distance.</p>
           <div className="stageActions">
-            <button className="btnG" onClick={() => setStage('centres')}>
+            <button className="btn btn--ghost btnG" onClick={() => setStage('centres')}>
               Back
             </button>
-            <button className="btnP" onClick={beginStepping}>
+            <button className="btn btn--primary btnP" onClick={beginStepping}>
               Start assigning points
             </button>
           </div>
         </div>
         <div className="kmeans-main">
           <div className="formalBox">
-            <p className="formalLabel">Formal definition</p>
+            <p className="panel__label formalLabel">Formal definition</p>
             <p className="formalTerm">Euclidean distance</p>
             <span className="formula">
               d(p, c) = √((x<sub>p</sub> − x<sub>c</sub>)² + (y<sub>p</sub> − y<sub>c</sub>)²)
@@ -1008,7 +1008,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
             <p>Just the straight-line distance between two points, nothing fancier.</p>
           </div>
           <div className="formalBox">
-            <p className="formalLabel">Worked example</p>
+            <p className="panel__label formalLabel">Worked example</p>
             <p className="formalTerm">
               Point ({p0[0]}, {p0[1]})
             </p>
@@ -1038,13 +1038,13 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
         </p>
         {!awaitingGuess ? (
           <div className="btnCol">
-            <button className="btnP" onClick={handleStepClick} disabled={sim.done || running}>
+            <button className="btn btn--primary btnP" onClick={handleStepClick} disabled={sim.done || running}>
               Step forward
             </button>
-            <button className="btnG" onClick={handleRun} disabled={sim.done || running}>
+            <button className="btn btn--ghost btnG" onClick={handleRun} disabled={sim.done || running}>
               {running ? 'Running…' : 'Run to convergence'}
             </button>
-            <button className="btnG" onClick={handleReset}>
+            <button className="btn btn--ghost btnG" onClick={handleReset}>
               Reset to step 0
             </button>
           </div>
@@ -1054,7 +1054,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
               Which centre do you think the ringed point will join?
             </p>
             {sim.centroids.map((_, i) => (
-              <button key={i} className="guessBtn" onClick={() => handleGuess(i)}>
+              <button key={i} className="btn btn--secondary guessBtn" onClick={() => handleGuess(i)}>
                 <MarkerIcon index={i} />
                 <span className="guessLabel">
                   Cluster {i + 1} ({SHAPES[i]})
@@ -1100,7 +1100,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
 
         {sim.done && (
           <div className="reflectBox">
-            <p className="sectionLabel">What just happened</p>
+            <p className="panel__label sectionLabel">What just happened</p>
             <ol className="termList">
               <li>Started with {points.length} points and no groups</li>
               <li>
@@ -1117,7 +1117,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
             </ol>
             <ElbowPanel points={points} isExample={isExample} k={k} onTryK={changeK} />
             <div className="formalBox">
-              <p className="formalLabel">Formal definition</p>
+              <p className="panel__label formalLabel">Formal definition</p>
               <p className="formalTerm">Centroid update</p>
               <span className="formula">
                 c<sub>k</sub> = (1 / |C<sub>k</sub>|) × Σ<sub>x∈C<sub>k</sub></sub> x
@@ -1128,7 +1128,7 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
               </p>
             </div>
             <div className="formalBox">
-              <p className="formalLabel">Formal definition</p>
+              <p className="panel__label formalLabel">Formal definition</p>
               <p className="formalTerm">Objective of K-Means</p>
               <p>
                 K-Means tries to minimise the total squared distance from every point to its own cluster's centre.
@@ -1136,15 +1136,15 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
                 exactly how it searches for that minimum.
               </p>
             </div>
-            <p className="sectionLabel">Quick check-in</p>
+            <p className="panel__label sectionLabel">Quick check-in</p>
             <div className="choiceRow">
-              <button className="guessBtn" onClick={() => setReflectPick('good')}>
+              <button className="btn btn--secondary guessBtn" onClick={() => setReflectPick('good')}>
                 This is making sense
               </button>
-              <button className="guessBtn" onClick={startOver}>
+              <button className="btn btn--secondary guessBtn" onClick={startOver}>
                 Try a different K
               </button>
-              <button className="guessBtn" onClick={() => setReflectPick('confused')}>
+              <button className="btn btn--secondary guessBtn" onClick={() => setReflectPick('confused')}>
                 Still a bit confusing
               </button>
             </div>

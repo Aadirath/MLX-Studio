@@ -2,11 +2,11 @@
   margin-top: 16px;
   padding: 14px 16px;
   border: 1px solid var(--line);
-  background: var(--paper-card);
+  background: var(--surface);
 }
 
 .logTitle {
-  font-family: 'Lora', serif;
+  font-family: var(--font-heading);
   font-size: 15px;
   font-weight: 600;
   margin: 0 0 10px;
@@ -25,8 +25,8 @@
 
 .logList li {
   padding: 8px 12px;
-  background: var(--blue-soft);
-  border-left: 3px solid var(--blue);
+  background: var(--primary-soft);
+  border-left: 3px solid var(--primary);
 }
 
 .logEmpty {
@@ -44,15 +44,15 @@
   font-family: inherit;
   font-size: 12.5px;
   padding: 5px 10px;
-  background: var(--blue-soft);
-  border: 1px solid var(--blue);
-  border-radius: 5px;
-  color: var(--blue);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-control);
+  color: var(--primary);
   cursor: pointer;
 }
 
 .logBtn:hover:not(:disabled) {
-  background: #d5e2ee;
+  background: var(--primary-soft-hover);
 }
 
 .logBtn:disabled {
@@ -61,7 +61,7 @@
 }
 
 .logBtn:focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--primary);
   outline-offset: 2px;
 }
 

@@ -40,7 +40,7 @@ function KMeansPage() {
         history={entries.slice(-6).map((e) => e.text)}
       />
       <div className="quizCta">
-        <Link className="primaryBtn" to={`/topic/${TOPIC_ID}/posttest`}>
+        <Link className="btn btn--primary primaryBtn" to={`/topic/${TOPIC_ID}/posttest`}>
           Go to the posttest →
         </Link>
       </div>

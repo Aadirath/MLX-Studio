@@ -332,7 +332,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             They do have a few recent sales nearby though: the area of each flat, and what it actually sold for.
           </p>
           <div className="stageActions">
-            <button className="btnP" onClick={() => goToStage('table')}>
+            <button className="btn btn--primary btnP" onClick={() => goToStage('table')}>
               Show me the recent sales
             </button>
           </div>
@@ -357,10 +357,10 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             sold for (in ₹ lakh).
           </p>
           <div className="stageActions">
-            <button className="btnG" onClick={() => setStage('context')}>
+            <button className="btn btn--ghost btnG" onClick={() => setStage('context')}>
               Back
             </button>
-            <button className="btnP" onClick={() => goToStage('observe')}>
+            <button className="btn btn--primary btnP" onClick={() => goToStage('observe')}>
               Now plot these on a graph
             </button>
           </div>
@@ -400,7 +400,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             {OBSERVE_OPTIONS.map((opt, i) => (
               <button
                 key={opt}
-                className="guessBtn"
+                className="btn btn--secondary guessBtn"
                 disabled={answered}
                 onClick={() => setObservePick(i)}
                 style={{ opacity: answered && i !== observePick ? 0.6 : 1 }}
@@ -411,10 +411,10 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
           </div>
           {answered && (
             <div className="stageActions">
-              <button className="btnG" onClick={() => setObservePick(null)}>
+              <button className="btn btn--ghost btnG" onClick={() => setObservePick(null)}>
                 Back
               </button>
-              <button className="btnP" onClick={() => goToStage('predict')}>
+              <button className="btn btn--primary btnP" onClick={() => goToStage('predict')}>
                 Continue
               </button>
             </div>
@@ -451,7 +451,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             {GUESS_OPTIONS.map((g) => (
               <button
                 key={g.key}
-                className="guessBtn"
+                className="btn btn--secondary guessBtn"
                 disabled={answered}
                 onClick={() => setGuessPick(g.key)}
                 style={{ opacity: answered && g.key !== guessPick ? 0.6 : 1 }}
@@ -462,10 +462,10 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
           </div>
           {answered && (
             <div className="stageActions">
-              <button className="btnG" onClick={() => setGuessPick(null)}>
+              <button className="btn btn--ghost btnG" onClick={() => setGuessPick(null)}>
                 Back
               </button>
-              <button className="btnP" onClick={() => goToStage('trend')}>
+              <button className="btn btn--primary btnP" onClick={() => goToStage('trend')}>
                 Continue to find the trend
               </button>
             </div>
@@ -521,10 +521,10 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             Watch the error, lower is better.
           </p>
           <div className="stageActions">
-            <button className="btnG" onClick={() => setStage('predict')}>
+            <button className="btn btn--ghost btnG" onClick={() => setStage('predict')}>
               Back
             </button>
-            <button className="btnP" onClick={() => goToStage('concept')}>
+            <button className="btn btn--primary btnP" onClick={() => goToStage('concept')}>
               Continue
             </button>
           </div>
@@ -560,10 +560,10 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             line. Next, let's actually work out the formula that finds it exactly.
           </p>
           <div className="stageActions">
-            <button className="btnG" onClick={() => setStage('trend')}>
+            <button className="btn btn--ghost btnG" onClick={() => setStage('trend')}>
               Back
             </button>
-            <button className="btnP" onClick={() => goToStage('math')}>
+            <button className="btn btn--primary btnP" onClick={() => goToStage('math')}>
               Continue
             </button>
           </div>
@@ -610,17 +610,17 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             Let's put a number on how good your line actually is, using the exact line you just dragged.
           </p>
           <div className="stageActions">
-            <button className="btnG" onClick={() => setStage('concept')}>
+            <button className="btn btn--ghost btnG" onClick={() => setStage('concept')}>
               Back
             </button>
-            <button className="btnP" onClick={() => goToStage('playground')}>
+            <button className="btn btn--primary btnP" onClick={() => goToStage('playground')}>
               Try to beat your own error
             </button>
           </div>
         </div>
         <div className="linreg-main">
           <div className="formalBox">
-            <p className="formalLabel">Formal definition</p>
+            <p className="panel__label formalLabel">Formal definition</p>
             <p className="formalTerm">Residual (prediction error)</p>
             <p>For any point, the residual is the actual value minus what the line predicts: e = y − ŷ.</p>
             <p>
@@ -630,7 +630,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             </p>
           </div>
           <div className="formalBox">
-            <p className="formalLabel">Formal definition</p>
+            <p className="panel__label formalLabel">Formal definition</p>
             <p className="formalTerm">Mean Squared Error (MSE)</p>
             <span className="formula">
               MSE = (1/n) × Σ (y<sub>i</sub> − ŷ<sub>i</sub>)²
@@ -644,7 +644,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             </p>
           </div>
           <div className="formalBox">
-            <p className="formalLabel">Formal definition</p>
+            <p className="panel__label formalLabel">Formal definition</p>
             <p className="formalTerm">Objective of Linear Regression</p>
             <p>
               Find the b₀ and b₁ that make MSE as small as possible. Searching for that minimum is called{' '}
@@ -708,10 +708,10 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             Current error (MSE): <b>{manualMse.toFixed(3)}</b>
           </div>
           <div className="stageActions">
-            <button className="btnG" onClick={() => setStage('math')}>
+            <button className="btn btn--ghost btnG" onClick={() => setStage('math')}>
               Back
             </button>
-            <button className="btnP" onClick={() => goToStage('derive')}>
+            <button className="btn btn--primary btnP" onClick={() => goToStage('derive')}>
               Show me the shortcut formula
             </button>
           </div>
@@ -764,17 +764,17 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
           </p>
           <div className="stageActions">
             <button
-              className="btnG"
+              className="btn btn--ghost btnG"
               onClick={() => (deriveStep === 0 ? setStage('playground') : setDeriveStep((s) => s - 1))}
             >
               Back
             </button>
             {!isLast ? (
-              <button className="btnP" onClick={() => setDeriveStep((s) => s + 1)}>
+              <button className="btn btn--primary btnP" onClick={() => setDeriveStep((s) => s + 1)}>
                 Next
               </button>
             ) : (
-              <button className="btnP" onClick={() => goToStage('reveal')}>
+              <button className="btn btn--primary btnP" onClick={() => goToStage('reveal')}>
                 What is this formula called?
               </button>
             )}
@@ -782,7 +782,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
         </div>
         <div className="linreg-main">
           <div className="formalBox">
-            <p className="formalLabel">{`Step ${deriveStep + 1}`}</p>
+            <p className="panel__label formalLabel">{`Step ${deriveStep + 1}`}</p>
             <p className="formalTerm">{step.label}</p>
             <span className="formula">{step.formula}</span>
             <p>{step.text}</p>
@@ -800,10 +800,10 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             best line in one shot.
           </p>
           <div className="stageActions">
-            <button className="btnG" onClick={() => setStage('derive')}>
+            <button className="btn btn--ghost btnG" onClick={() => setStage('derive')}>
               Back
             </button>
-            <button className="btnP" onClick={() => goToStage('bestfit')}>
+            <button className="btn btn--primary btnP" onClick={() => goToStage('bestfit')}>
               See it computed on our data
             </button>
           </div>
@@ -811,7 +811,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
         <div className="linreg-main">
           <div className="termCallout">Ordinary Least Squares</div>
           <div className="formalBox">
-            <p className="formalLabel">Formal definition</p>
+            <p className="panel__label formalLabel">Formal definition</p>
             <p className="formalTerm">Ordinary Least Squares (OLS)</p>
             <span className="formula">
               b<sub>1</sub> = Σ(xᵢ − x̄)(yᵢ − ȳ) / Σ(xᵢ − x̄)², &nbsp; b<sub>0</sub> = ȳ − b<sub>1</sub>x̄
@@ -832,14 +832,14 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
         <div className="linreg-controls">
           <p className="storyText">Let's plug in the real numbers from all 10 listings.</p>
           <div className="stageActions">
-            <button className="btnG" onClick={() => setStage('reveal')}>
+            <button className="btn btn--ghost btnG" onClick={() => setStage('reveal')}>
               Back
             </button>
           </div>
         </div>
         <div className="linreg-main">
           <div className="formalBox">
-            <p className="formalLabel">Worked example</p>
+            <p className="panel__label formalLabel">Worked example</p>
             <p className="formalTerm">Computing b₁ and b₀ from the data</p>
             <p>
               x̄ = {OLS.xbar.toFixed(2)}, ȳ = {OLS.ybar.toFixed(2)}
@@ -880,13 +880,13 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
           </div>
 
           <div className="reflectBox">
-            <p className="sectionLabel">Quick check-in</p>
+            <p className="panel__label sectionLabel">Quick check-in</p>
             <div className="choiceRow">
-              <button className="guessBtn" onClick={() => setReflectPick('good')}>
+              <button className="btn btn--secondary guessBtn" onClick={() => setReflectPick('good')}>
                 This is making sense
               </button>
               <button
-                className="guessBtn"
+                className="btn btn--secondary guessBtn"
                 onClick={() => {
                   setReflectPick('again')
                   setDeriveStep(0)
@@ -895,7 +895,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
               >
                 Show the derivation again
               </button>
-              <button className="guessBtn" onClick={() => setReflectPick('confused')}>
+              <button className="btn btn--secondary guessBtn" onClick={() => setReflectPick('confused')}>
                 Still a bit confusing
               </button>
             </div>

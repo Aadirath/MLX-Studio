@@ -69,7 +69,7 @@ function GoFurtherPanel({ topic }) {
       <h2 id="goFurtherTitle">Want to go further?</h2>
       <div className="goFurther-cards">
         {links.map((l) => (
-          <a key={l.title} className="goFurther-card" href={l.href} target="_blank" rel="noopener noreferrer">
+          <a key={l.title} className="panel goFurther-card" href={l.href} target="_blank" rel="noopener noreferrer">
             <div className="cardLabel">{l.label}</div>
             <div className="cardTitle">{l.title}</div>
             <div className="cardDesc">{l.desc}</div>

@@ -24,44 +24,44 @@
 
 .tw-lr-point {
   fill: var(--ink);
-  stroke: #fff;
+  stroke: var(--surface);
   stroke-width: 1.5;
   transition: r 0.2s ease;
 }
 
 .tw-lr-point:hover {
   r: 6;
-  fill: var(--blue);
+  fill: var(--primary);
 }
 
 .tw-lr-pred-point {
-  fill: var(--blue);
-  stroke: #fff;
+  fill: var(--primary);
+  stroke: var(--surface);
   stroke-width: 1.5;
 }
 
 .tw-lr-residual {
-  stroke: var(--rust);
+  stroke: var(--danger);
   stroke-width: 1.8;
   stroke-dasharray: 4 3;
 }
 
 .tw-lr-residual-box {
-  fill: var(--rust-soft);
+  fill: var(--danger-soft);
   opacity: 0.35;
-  stroke: var(--rust);
+  stroke: var(--danger);
   stroke-width: 0.8;
 }
 
 .tw-lr-line {
-  stroke: var(--blue);
+  stroke: var(--primary);
   stroke-width: 2.5;
   stroke-linecap: round;
   transition: all 0.25s ease-out;
 }
 
 .tw-lr-ols-line {
-  stroke: var(--good);
+  stroke: var(--success);
   stroke-width: 1.5;
   stroke-dasharray: 5 4;
 }
@@ -71,9 +71,9 @@
   gap: 16px;
   flex-wrap: wrap;
   align-items: center;
-  background: var(--paper);
+  background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 8px 12px;
 }
 
@@ -81,10 +81,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--fs-12);
 }
 
 .tw-slider-col input[type='range'] {
   width: 110px;
-  accent-color: var(--blue);
 }
