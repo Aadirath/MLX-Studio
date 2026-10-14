@@ -29,6 +29,10 @@
   --highlight-soft: #fdf6e7;
   --hover: #efeadb;
   --inset: #eee9da;
+  --raise: #e8e2cf;
+  --warn: #9a6700;
+  --coach: #5b3fa8;
+  --coach-bg: #efeaf7;
   --syn-keyword: #6d28d9;
   --syn-number: #9a5200;
   --shadow: 0 1px 3px rgba(35, 38, 43, 0.12);
@@ -42,7 +46,8 @@
   --fs-28: 28px;
   --fs-36: 36px;
   --fs-h1: clamp(28px, 1.375rem + 1.2vw, 36px);
-  --font-heading: 'Lora', Georgia, serif;
+  --font-display: 'Bricolage Grotesque', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-heading: var(--font-display);
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
 
@@ -114,6 +119,10 @@
     --highlight-soft: #2e2a17;
     --hover: #2a2e35;
     --inset: #262a31;
+    --raise: #30343c;
+    --warn: #e6c66a;
+    --coach: #b9a8f2;
+    --coach-bg: #232036;
     --syn-keyword: #c4a5f5;
     --syn-number: #e6a85c;
     --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
@@ -145,6 +154,10 @@
   --highlight-soft: #2e2a17;
   --hover: #2a2e35;
   --inset: #262a31;
+  --raise: #30343c;
+  --warn: #e6c66a;
+  --coach: #b9a8f2;
+  --coach-bg: #232036;
   --syn-keyword: #c4a5f5;
   --syn-number: #e6a85c;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
@@ -166,6 +179,18 @@
 
 * {
   box-sizing: border-box;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 html,
@@ -231,7 +256,7 @@ code {
 }
 
 .container.container--wide {
-  max-width: 1240px;
+  max-width: 1360px;
 }
 
 /* ==========================================================================
