@@ -4,6 +4,7 @@
 export const LAB_SECTIONS = [
   { id: 'aim', label: 'Aim' },
   { id: 'theory', label: 'Theory' },
+  { id: 'assumptions', label: 'Assumptions' },
   { id: 'pretest', label: 'Pretest' },
   { id: 'procedure', label: 'Procedure' },
   { id: 'simulation', label: 'Simulation' },
@@ -114,12 +115,12 @@ export const LAB_CONTENT = {
           'Update: move every centre to the mean (average position) of the points assigned to it.',
           'Repeat assign and update until the assignments stop changing. That is convergence.',
         ],
-        formula: 'c_k = (1 / |C_k|) × Σ_{x ∈ C_k} x',
+        formula: 'cₖ = (1 / |Cₖ|) × Σ x   (sum over all points x in cluster Cₖ)',
       },
       {
         heading: 'What K-Means minimises',
         text: 'K-Means tries to make the total squared distance from each point to its own centre as small as possible. This total is called SSE, inertia or within-cluster sum of squares. Each assign step and each update step can only lower it or keep it the same, which is why the algorithm always stops.',
-        formula: 'SSE = Σ_k Σ_{x ∈ C_k} ‖x − c_k‖²',
+        formula: 'SSE = Σₖ Σ ‖x − cₖ‖²   (over every cluster k and every point x in it)',
       },
       {
         heading: 'K is a hyperparameter',
@@ -135,12 +136,13 @@ export const LAB_CONTENT = {
       },
     ],
     procedure: [
-      'Inspect the table of 16 points. Optional: choose "Use your own data" and type points or upload a CSV.',
+      'Choose a dataset: Two groups (2 features), Iris flowers (4 features), Two rings, or your own data (typed or CSV). Read the table: each column is a feature, with its mean, min and max underneath.',
       'Plot the points and choose how many groups K you think the data has (2, 3 or 4).',
       'Look at where the starting centres are placed.',
       'Follow the distance worked example to see how one point picks its nearest centre.',
       'Press "Step forward". Before each step, predict which cluster the ringed point will join.',
-      'Watch the total spread (SSE) and the iteration counter. Use "Run to convergence" to finish, and the "Jump to iteration" panel to go back and forward.',
+      'Watch the cost J (SSE) fall after each iteration in the cost chart. Use "Run to convergence" to finish, and the "Jump to iteration" panel to go back and forward. With Iris, change which two features are plotted: the clusters stay the same.',
+      'For Iris and Two rings, compare the clusters with the real labels K-Means never saw.',
       'When the run ends, read the elbow plot: guess where the SSE curve bends, then check your guess.',
       'Choose "Try a different K" (or "Run again with K = …" under the elbow plot) and repeat. Compare the runs in "Your experiments".',
       'Optional: turn on "Hear the error". Higher pitch means more total spread.',
@@ -252,5 +254,157 @@ export const LAB_CONTENT = {
         href: 'https://scikit-learn.org/stable/modules/sgd.html',
       },
     ],
+  },
+}
+
+// Cost function, assumptions and "when to use" for each topic (the Assumptions section).
+// Each assumption: what it means in plain words, how to check it, and what goes wrong if it is broken.
+export const ASSUMPTIONS = {
+  'linear-regression': {
+    cost: {
+      name: 'Mean squared error (MSE)',
+      formula: 'J(b₀, b₁) = (1/n) × Σ (yᵢ − (b₀ + b₁xᵢ))²',
+      meaning: 'The average squared gap between each real value and the line. OLS finds the b₀ and b₁ that make J as small as possible.',
+    },
+    list: [
+      {
+        name: 'Linear relationship',
+        plain: 'On average, y goes up or down in a straight line as x changes.',
+        check: 'The scatter plot looks like a band around a straight line; the residuals show no curve.',
+        broken: 'The line misses a curved pattern, so predictions are wrong at both ends.',
+      },
+      {
+        name: 'Independent data points',
+        plain: 'Each row is a separate case; one sale does not affect another.',
+        check: 'Think about how the data was collected. Data measured over time often breaks this.',
+        broken: 'The fit looks more certain than it really is.',
+      },
+      {
+        name: 'Constant spread of errors',
+        plain: 'Residuals are about the same size everywhere, not small at one end and large at the other.',
+        check: 'The residual lines do not fan out as x grows.',
+        broken: 'The line is still the best average, but its error is uneven: good for small x, poor for large x.',
+      },
+      {
+        name: 'No extreme outliers',
+        plain: 'No single point sits far away from all the others.',
+        check: 'Look for a point far from the band. In Teacher Mode, compare the "Dataset with Outlier" preset.',
+        broken: 'Because errors are squared, one outlier pulls the whole line towards itself.',
+      },
+      {
+        name: 'Features are not near-copies (several features only)',
+        plain: 'With more than one input, the inputs should not carry the same information (e.g. area in sq ft and in sq m).',
+        check: 'Two feature columns that rise and fall together in the data table.',
+        broken: 'The individual slopes become unstable and hard to interpret.',
+      },
+    ],
+    use: [
+      'The output is a number (price, marks, temperature).',
+      'The relationship looks roughly straight.',
+      'You need an explainable model: the slope has a clear meaning.',
+    ],
+    avoid: [
+      'The output is a category (pass/fail, species): use a classification method such as logistic regression.',
+      'The pattern is clearly curved: transform the data or use polynomial regression.',
+      'You need to predict far outside the range of the data.',
+    ],
+    tryIt: 'Teacher Mode → Linear Regression → dataset "Dataset with Outlier" shows one point pulling the line.',
+  },
+  'k-means': {
+    cost: {
+      name: 'Within-cluster sum of squares (SSE, also called inertia)',
+      formula: 'J = Σₖ Σ ‖x − cₖ‖²   (over every cluster k and every point x in it)',
+      meaning: 'The total squared distance from every point to its own cluster centre. Smaller J means tighter clusters. The simulation shows J after every iteration.',
+    },
+    list: [
+      {
+        name: 'Numeric features',
+        plain: 'Every feature is a number that can be averaged. A colour or a city name cannot.',
+        check: 'Every column in the data table is numeric.',
+        broken: 'Centres (averages) and distances have no meaning.',
+      },
+      {
+        name: 'Features on similar scales',
+        plain: 'A feature measured in thousands must not drown out one measured in single units.',
+        check: 'Compare the standard deviations in the data table. If they differ a lot, standardise first.',
+        broken: 'The large-scale feature decides the clusters on its own.',
+      },
+      {
+        name: 'Round, compact clusters of similar size',
+        plain: 'Each group is a blob around a centre, not a ring, a long strip or a moon shape.',
+        check: 'Plot the data (try several feature pairs).',
+        broken: 'K-Means cuts the data with straight boundaries and splits the real groups. See the "Two rings" dataset.',
+      },
+      {
+        name: 'K is chosen in advance',
+        plain: 'K-Means always makes exactly K groups, right or wrong.',
+        check: 'Use the elbow plot after a run, and ask whether the groups make sense.',
+        broken: 'Too small a K merges real groups; too large a K splits them.',
+      },
+      {
+        name: 'Few outliers',
+        plain: 'No small number of points far from everything else.',
+        check: 'Look for isolated points on the plot.',
+        broken: 'An outlier drags its centre (an average) towards itself.',
+      },
+      {
+        name: 'Starting centres matter',
+        plain: 'Different starting centres can end in different clusters (a local minimum of J).',
+        check: 'Run again from different starts and keep the run with the lowest J.',
+        broken: 'One unlucky run can give a poor grouping.',
+      },
+    ],
+    use: [
+      'You have unlabelled numeric data and want compact groups: customer segments, grouping students by scores, reducing an image to a few colours.',
+      'You have a rough idea of how many groups to expect, or can test a few K values.',
+    ],
+    avoid: [
+      'Groups have odd shapes (rings, strips) or very different sizes: use DBSCAN or hierarchical clustering.',
+      'Features are categories rather than numbers.',
+      'The data has many outliers.',
+    ],
+    tryIt: 'Simulation → choose "Two rings (breaks an assumption)", run K = 2, and compare the clusters with the real rings.',
+  },
+  'gradient-descent': {
+    cost: {
+      name: 'Mean squared error (MSE), the same cost as linear regression',
+      formula: 'J(b₀, b₁) = (1/n) × Σ (yᵢ − (b₀ + b₁xᵢ))²',
+      meaning: 'Gradient descent can minimise any cost that has a gradient. Here it minimises the MSE of a line, so its answer should match OLS.',
+    },
+    list: [
+      {
+        name: 'The cost has a gradient',
+        plain: 'J must change smoothly when the parameters change, so its slope can be calculated.',
+        check: 'The cost is built from smooth operations (sums, squares).',
+        broken: 'There is no direction to step in.',
+      },
+      {
+        name: 'A suitable learning rate',
+        plain: 'Steps are big enough to make progress but small enough not to jump over the bottom.',
+        check: 'J should fall at every step. If it rises, lower the learning rate.',
+        broken: 'Too small: very slow. Too large: zigzags or diverges. See "Compare learning rates".',
+      },
+      {
+        name: 'Features on similar scales',
+        plain: 'Inputs are standardised so the cost surface is a round bowl, not a long narrow valley.',
+        check: 'Compare the ranges of the features in the data table.',
+        broken: 'No single learning rate works well for every direction.',
+      },
+      {
+        name: 'A bowl-shaped (convex) cost for a guaranteed best answer',
+        plain: 'With one bottom, every downhill path ends at the best answer. Linear regression\'s MSE is like this.',
+        check: 'Known from the model: linear regression yes, neural networks no.',
+        broken: 'With several dips, the descent can stop in a dip that is not the lowest.',
+      },
+    ],
+    use: [
+      'There is no direct formula for the best parameters (neural networks, logistic regression).',
+      'The data is too large to solve in one go: gradient descent can work in small batches.',
+    ],
+    avoid: [
+      'A small linear regression problem: OLS gives the exact answer instantly.',
+      'The cost has no gradient (for example, decision-tree splits).',
+    ],
+    tryIt: 'Simulation → "Compare learning rates": 0.05 creeps, 0.30 converges, 1.10 diverges.',
   },
 }

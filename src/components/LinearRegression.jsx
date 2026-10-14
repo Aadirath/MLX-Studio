@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import GoFurtherPanel from './GoFurtherPanel.jsx'
 import { useSessionState } from '../hooks/useSessionState.js'
 import './LinearRegression.css'
+import DataTable from './DataTable.jsx'
 
 const X = [1, 2, 3, 4, 5, 6, 6.5, 7, 8, 9]
 const Y = [2.1, 2.9, 4.2, 4.8, 6.1, 6.9, 7.3, 7.8, 8.6, 9.4]
@@ -366,22 +367,15 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
           </div>
         </div>
         <div className="linreg-main">
-          <table className="exampleTable">
-            <thead>
-              <tr>
-                <th>Area (100 sq ft)</th>
-                <th>Price (₹ lakh)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {X.map((x, i) => (
-                <tr key={x}>
-                  <td>{x}</td>
-                  <td>{Y[i]}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            caption="10 recent flat sales: one feature (area) used to predict the target (price)."
+            columns={[
+              { label: 'Area', unit: '100 sq ft', role: 'feature' },
+              { label: 'Price', unit: '₹ lakh', role: 'target' },
+            ]}
+            rows={X.map((x, i) => [x, Y[i]])}
+            maxHeight={480}
+          />
         </div>
       </>
     )
@@ -534,7 +528,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             <span className="chartTitle">Area vs. price, 10 sampled listings</span>
             <div className="readouts">
               <span>
-                Error (MSE) <b className={`mseVal${manualMse <= manualBest ? ' improving' : ''}`}>{manualMse.toFixed(3)}</b>
+                Cost J (MSE) <b className={`mseVal${manualMse <= manualBest ? ' improving' : ''}`}>{manualMse.toFixed(3)}</b>
               </span>
             </div>
           </div>
@@ -631,7 +625,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
           </div>
           <div className="formalBox">
             <p className="formalLabel">Formal definition</p>
-            <p className="formalTerm">Mean Squared Error (MSE)</p>
+            <p className="formalTerm">Mean Squared Error (MSE): the cost function J</p>
             <span className="formula">
               MSE = (1/n) × Σ (y<sub>i</sub> − ŷ<sub>i</sub>)²
             </span>
@@ -705,7 +699,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
           </div>
           <div className={`annotation ${warmth.cls}`}>
             <span className="tag">{warmth.label}</span>
-            Current error (MSE): <b>{manualMse.toFixed(3)}</b>
+            Current cost J (MSE): <b>{manualMse.toFixed(3)}</b>
           </div>
           <div className="stageActions">
             <button className="btnG" onClick={() => setStage('math')}>
@@ -863,7 +857,7 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
             <span className="chartTitle">Area vs. price, 10 sampled listings</span>
             <div className="readouts">
               <span>
-                Error (MSE) <b className="mseVal improving">{olsMse.toFixed(3)}</b>
+                Cost J (MSE) <b className="mseVal improving">{olsMse.toFixed(3)}</b>
               </span>
             </div>
           </div>

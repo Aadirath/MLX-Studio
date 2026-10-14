@@ -11,12 +11,15 @@ An interactive, AI-supported learning app for core machine learning algorithms, 
 | Topic | What the learner does |
 | --- | --- |
 | Linear Regression | Fits a line by hand, measures the error (MSE), derives and applies Ordinary Least Squares. Sandbox for their own data (typed or CSV). |
-| K-Means Clustering | Chooses K, predicts each assignment, steps to convergence, then reads an elbow plot to judge whether K was a good choice. Own data (typed or CSV). |
+| K-Means Clustering | Chooses a dataset (2-feature example, 4-feature Iris flowers, two rings that break an assumption, or own data), chooses K, predicts each assignment, watches the cost J fall, then reads an elbow plot and compares clusters with the real labels. |
 | Gradient Descent | Watches a path descend the error surface, tunes the learning rate, and races three learning rates side by side. Four preset datasets. |
 
 ## Features
 
-- **Virtual Labs-style structure** for every topic: Aim → Theory → Pretest → Procedure → Simulation → Posttest → References, in a left sidebar.
+- **Virtual Labs-style structure** for every topic: Aim → Theory → Assumptions → Pretest → Procedure → Simulation → Posttest → References, in a left sidebar.
+- **Assumptions section** per topic: the cost function, what the data must look like, how to check it, what breaks, and when to use or avoid the algorithm.
+- **Data tables** with named features, the target or label marked, and mean / min / max / standard deviation.
+- **Multidimensional K-Means:** clusters the 4-feature Iris data; learners choose which 2 features to plot.
 - **Pretest and posttest** on the same questions, so learners see their own improvement.
 - **AI coach** (Gemini) that gives hints and questions, never direct answers. Replies in English, Hindi or Marathi, with read-aloud.
 - **Hyperparameter tuning:** elbow plot for K, learning-rate comparison for gradient descent.
@@ -69,7 +72,7 @@ reference/                      Original HTML prototypes the React app was built
 | Path | Page |
 | --- | --- |
 | `/` | Topic cards |
-| `/topic/:topicId/:section` | Lab page; `section` is `aim`, `theory`, `pretest`, `procedure`, `simulation`, `posttest` or `references` |
+| `/topic/:topicId/:section` | Lab page; `section` is `aim`, `theory`, `assumptions`, `pretest`, `procedure`, `simulation`, `posttest` or `references` |
 | `/topic/:topicId/summary` | Session summary with pretest vs. posttest |
 | `/linear-regression/sandbox` | Fit a line to your own data |
 | `/teacher`, `/teacher/:topic` | Teacher Mode |
