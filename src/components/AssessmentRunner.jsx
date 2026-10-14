@@ -42,13 +42,13 @@ function AssessmentRunner({ items, mode, onFinish }) {
   }
 
   return (
-    <div className="qCard assess">
+    <div className="panel qCard assess">
       <div className="assessProgress" aria-hidden="true">
         {items.map((it, i) => (
           <span key={it.index} className={`assessDot${i < pos ? ' done' : ''}${i === pos ? ' current' : ''}`} />
         ))}
       </div>
-      <p className="sectionLabel">
+      <p className="panel__label sectionLabel">
         Question {pos + 1} of {items.length}
       </p>
       <p className="qPrompt">{q.prompt}</p>
@@ -72,7 +72,7 @@ function AssessmentRunner({ items, mode, onFinish }) {
         </p>
       )}
       {answered && (
-        <button type="button" className="primaryBtn" style={{ marginTop: 10 }} onClick={next}>
+        <button type="button" className="btn btn--primary primaryBtn" style={{ marginTop: 10 }} onClick={next}>
           {isLast ? 'See my score' : 'Next question'}
         </button>
       )}

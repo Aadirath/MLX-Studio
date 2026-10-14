@@ -1,19 +1,10 @@
 .gd {
-  --ink: #23262b;
-  --muted: #726c5d;
-  --line: #dcd5c0;
-  --paper: #f3efe4;
-  --paper-card: #fcfaf4;
-  --blue: #2f5d8a;
-  --blue-soft: #e4ecf3;
-  --rust: #a6462d;
-
   display: grid;
   grid-template-columns: 200px 1fr 260px;
   border: 1px solid var(--line);
-  background: var(--paper-card);
+  background: var(--surface);
   color: var(--ink);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 @media (max-width: 900px) {
@@ -44,43 +35,8 @@
 }
 
 .gd .btnCol button {
-  font-family: inherit;
   font-size: 13px;
   padding: 8px 12px;
-  border: 1px solid transparent;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.gd .btnP {
-  background: var(--blue);
-  color: #fff;
-  border-color: var(--blue);
-}
-
-.gd .btnP:hover:not(:disabled) {
-  background: #274d73;
-}
-
-.gd .btnP:disabled {
-  background: #a9b9c7;
-  border-color: #a9b9c7;
-  cursor: not-allowed;
-}
-
-.gd .btnG {
-  background: transparent;
-  color: var(--ink);
-  border-color: var(--line);
-}
-
-.gd .btnG:hover:not(:disabled) {
-  background: #efeadb;
-}
-
-.gd .btnG:disabled {
-  color: var(--muted);
-  cursor: not-allowed;
 }
 
 .gd .note {
@@ -93,7 +49,7 @@
 .gd .legendBar {
   height: 10px;
   border-radius: 3px;
-  background: linear-gradient(90deg, #f3efe4, #2f5d8a);
+  background: linear-gradient(90deg, var(--bg), var(--primary));
   margin-bottom: 4px;
 }
 
@@ -132,7 +88,7 @@
 }
 
 .gd .mseVal {
-  color: var(--rust);
+  color: var(--danger);
 }
 
 .gd svg {
@@ -144,14 +100,14 @@
 .gd .axLbl {
   font-size: 10.5px;
   fill: var(--muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .gd .annotation {
   margin-top: 14px;
   padding: 12px 14px;
-  background: var(--blue-soft);
-  border-left: 3px solid var(--blue);
+  background: var(--primary-soft);
+  border-left: 3px solid var(--primary);
   font-size: 13px;
   line-height: 1.55;
   min-height: 18px;
@@ -162,7 +118,7 @@
   font-size: 11px;
   font-weight: 600;
   margin-right: 7px;
-  color: var(--blue);
+  color: var(--primary);
 }
 
 .gd-side {
@@ -192,13 +148,12 @@
 }
 
 .gd .lrLabel {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--ink);
 }
 
 .gd .lrControl input[type='range'] {
   width: 100%;
-  accent-color: var(--blue);
 }
 
 .gd .chartNote {
@@ -206,9 +161,9 @@
   padding: 8px 12px;
   font-size: 12.5px;
   line-height: 1.5;
-  background: #f3e4df;
-  border-left: 3px solid var(--rust);
-  color: var(--rust);
+  background: var(--danger-soft);
+  border-left: 3px solid var(--danger);
+  color: var(--danger);
 }
 
 .gd-jump {
@@ -243,24 +198,24 @@
   font-family: inherit;
   background: transparent;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   line-height: 1.4;
   padding: 7px 8px;
 }
 
 .gd .stageNavItem:hover {
-  background: #efeadb;
+  background: var(--hover);
   color: var(--ink);
 }
 
 .gd .stageNavItem.active {
-  background: var(--blue-soft);
-  border-color: var(--blue);
-  color: var(--blue);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -276,23 +231,13 @@
 }
 
 .gd .datasetBtn {
-  font-family: inherit;
   font-size: 13px;
   padding: 7px 10px;
-  background: var(--blue-soft);
-  border: 1px solid var(--blue);
-  border-radius: 5px;
-  color: var(--blue);
-  cursor: pointer;
-}
-
-.gd .datasetBtn:hover {
-  background: #d5e2ee;
 }
 
 .gd .datasetBtn.active {
-  background: var(--blue);
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary);
 }
 
 .gd .readouts {
@@ -308,22 +253,22 @@
 }
 
 .gdModeTab {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 13px;
   font-weight: 500;
   padding: 9px 16px;
-  border: 1px solid #dcd5c0;
-  background: #f3efe4;
-  color: #726c5d;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
   cursor: pointer;
-  border-radius: 6px 6px 0 0;
+  border-radius: var(--radius-control) var(--radius-control) 0 0;
   margin-right: 4px;
 }
 
 .gdModeTab.active {
-  background: #fcfaf4;
-  color: #2f5d8a;
-  border-bottom-color: #fcfaf4;
+  background: var(--surface);
+  color: var(--primary);
+  border-bottom-color: var(--surface);
   font-weight: 600;
 }
 
@@ -346,9 +291,9 @@
   gap: 4px;
   font-size: 12.5px;
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: var(--bg);
   padding: 10px 12px;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
 }
 
 .gd .gdcRate input[type='range'] {
@@ -372,7 +317,7 @@
   font-size: 13px;
   padding: 8px 14px;
   border: 1px solid transparent;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 
@@ -417,13 +362,13 @@
 }
 
 .gd .annotation.fbGood {
-  background: #e4f0e8;
-  border-left-color: #3f7d53;
+  background: var(--success-soft);
+  border-left-color: var(--success);
 }
 
 .gd .annotation.fbBad {
-  background: #f3e4df;
-  border-left-color: #a6462d;
+  background: var(--danger-soft);
+  border-left-color: var(--danger);
 }
 
 .gd svg.gdcKey {

@@ -1,14 +1,14 @@
 .tw-code-card {
-  background: var(--paper-card);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   box-shadow: 0 1px 0 var(--line);
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 480px;
   overflow: hidden;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body);
   color: var(--ink);
 }
 
@@ -18,7 +18,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background: var(--paper);
+  background: var(--bg);
   border-bottom: 1px solid var(--line);
   gap: 10px;
   flex-wrap: wrap;
@@ -28,22 +28,22 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--ink);
 }
 
 .tw-code-file-icon {
-  font-size: 14px;
+  font-size: var(--fs-14);
 }
 
 .tw-code-lang-badge {
   font-size: 10px;
   padding: 1px 6px;
   border-radius: 3px;
-  background: var(--blue-soft);
-  color: var(--blue);
+  background: var(--primary-soft);
+  color: var(--primary);
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -57,8 +57,8 @@
 .tw-code-view-toggle {
   display: inline-flex;
   border: 1px solid var(--line);
-  background: var(--paper-card);
-  border-radius: 4px;
+  background: var(--surface);
+  border-radius: var(--radius-control);
   padding: 1px;
 }
 
@@ -75,7 +75,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  transition: all 0.15s ease;
+  transition: all var(--transition);
 }
 
 .tw-code-mode-tab:hover {
@@ -83,8 +83,8 @@
 }
 
 .tw-code-mode-tab.active {
-  background: var(--blue);
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary);
   font-weight: 600;
 }
 
@@ -92,17 +92,17 @@
   font-family: inherit;
   font-size: 11px;
   padding: 3px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
-  background: var(--paper-card);
+  background: var(--surface);
   color: var(--muted);
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all var(--transition);
 }
 
 .tw-code-action-btn:hover {
   color: var(--ink);
-  border-color: var(--blue);
+  border-color: var(--primary);
 }
 
 /* Edit Toolbar */
@@ -111,7 +111,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  background: #fbf7ee;
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
   flex-wrap: wrap;
   gap: 8px;
@@ -119,22 +119,22 @@
 
 .tw-code-run-btn {
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 600;
   padding: 4px 12px;
-  border-radius: 4px;
-  border: 1px solid var(--good);
-  background: var(--good);
-  color: #fff;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--success);
+  background: var(--success);
+  color: var(--on-primary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  transition: all 0.15s ease;
+  transition: all var(--transition);
 }
 
 .tw-code-run-btn:hover {
-  background: #336944;
+  background: color-mix(in srgb, var(--success) 85%, var(--ink));
 }
 
 .tw-code-revert-btn {
@@ -142,9 +142,9 @@
   font-size: 11.5px;
   font-weight: 500;
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
   cursor: pointer;
   display: inline-flex;
@@ -153,16 +153,16 @@
 }
 
 .tw-code-revert-btn:hover {
-  background: #eae4d3;
+  background: var(--inset);
 }
 
 /* Error & Success Banners */
 .tw-code-error-banner {
-  background: var(--rust-soft);
-  border-bottom: 1px solid rgba(166, 70, 45, 0.3);
+  background: var(--danger-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
   padding: 8px 12px;
   font-size: 11.5px;
-  color: var(--rust);
+  color: var(--danger);
 }
 
 .tw-code-error-title-row {
@@ -175,7 +175,7 @@
 .tw-code-error-toggle {
   background: none;
   border: none;
-  color: var(--rust);
+  color: var(--danger);
   font-size: 11px;
   text-decoration: underline;
   cursor: pointer;
@@ -185,18 +185,18 @@
 .tw-code-error-details {
   margin-top: 6px;
   padding: 6px 8px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-  font-family: var(--font-mono, monospace);
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+  border-radius: var(--radius-control);
+  font-family: var(--font-mono);
   font-size: 11px;
 }
 
 .tw-code-success-banner {
-  background: var(--good-soft);
-  border-bottom: 1px solid rgba(63, 125, 83, 0.3);
+  background: var(--success-soft);
+  border-bottom: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
   padding: 6px 12px;
   font-size: 11.5px;
-  color: var(--good);
+  color: var(--success);
   font-weight: 600;
 }
 
@@ -206,7 +206,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 12px;
-  background: #fbf8f0;
+  background: var(--surface);
   border-bottom: 1px solid var(--line);
   font-size: 11.5px;
   gap: 8px;
@@ -222,9 +222,9 @@
   font-size: 10.5px;
   font-weight: 600;
   padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--blue);
-  color: #fff;
+  border-radius: var(--radius-control);
+  background: var(--primary);
+  color: var(--on-primary);
 }
 
 .tw-code-step-title {
@@ -233,7 +233,7 @@
 }
 
 .tw-code-step-lines {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--muted);
 }
@@ -243,10 +243,10 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: auto;
-  background: #faf8f4;
+  background: var(--surface);
   padding: 6px 0;
-  font-family: var(--font-mono, 'JetBrains Mono', 'Fira Code', Consolas, monospace);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
   line-height: 1.55;
   user-select: text;
 }
@@ -256,17 +256,17 @@
   align-items: stretch;
   min-height: 20px;
   padding: 0 4px;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--transition);
   position: relative;
 }
 
 .tw-code-line.active {
-  background: rgba(47, 93, 138, 0.13);
-  border-left: 3px solid var(--blue);
+  background: color-mix(in srgb, var(--primary) 13%, transparent);
+  border-left: 3px solid var(--primary);
 }
 
 .tw-code-line:not(.active):hover {
-  background: rgba(0, 0, 0, 0.025);
+  background: color-mix(in srgb, var(--ink) 2.5%, transparent);
 }
 
 .tw-code-gutter {
@@ -274,13 +274,13 @@
   min-width: 34px;
   text-align: right;
   padding-right: 10px;
-  color: #a49e91;
+  color: var(--muted);
   user-select: none;
   font-size: 11px;
 }
 
 .tw-code-line.active .tw-code-gutter {
-  color: var(--blue);
+  color: var(--primary);
   font-weight: 700;
 }
 
@@ -288,7 +288,7 @@
   width: 14px;
   min-width: 14px;
   user-select: none;
-  color: var(--blue);
+  color: var(--primary);
   font-size: 10px;
   display: flex;
   align-items: center;
@@ -305,7 +305,7 @@
   flex: 1;
   display: flex;
   min-height: 240px;
-  background: #faf8f4;
+  background: var(--surface);
 }
 
 .tw-code-textarea {
@@ -313,11 +313,10 @@
   height: 100%;
   min-height: 280px;
   border: none;
-  outline: none;
   background: transparent;
   padding: 10px 14px;
-  font-family: var(--font-mono, 'JetBrains Mono', 'Fira Code', Consolas, monospace);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
   line-height: 1.55;
   color: var(--ink);
   resize: vertical;
@@ -326,40 +325,40 @@
 
 /* Syntax Token Colors */
 .tok-keyword {
-  color: #2f5d8a;
+  color: var(--primary);
   font-weight: 600;
 }
 
 .tok-builtin {
-  color: #7c3aed;
+  color: var(--syn-keyword);
   font-weight: 500;
 }
 
 .tok-string {
-  color: #3f7d53;
+  color: var(--success);
 }
 
 .tok-number {
-  color: #d97706;
+  color: var(--syn-number);
 }
 
 .tok-operator {
-  color: #a6462d;
+  color: var(--danger);
   font-weight: 500;
 }
 
 .tok-comment {
-  color: #8c8575;
+  color: var(--muted);
   font-style: italic;
 }
 
 .tok-plain {
-  color: #23262b;
+  color: var(--ink);
 }
 
 /* Visual Notice Callout */
 .tw-code-notice-box {
-  background: #f7f4eb;
+  background: var(--surface);
   border-top: 1px solid var(--line);
   padding: 6px 12px;
   font-size: 11px;
@@ -376,7 +375,7 @@
 
 /* Live Variables Inspector */
 .tw-code-vars-panel {
-  background: var(--paper-card);
+  background: var(--surface);
   border-top: 1px solid var(--line);
   padding: 10px 12px;
   display: flex;
@@ -406,21 +405,21 @@
   align-items: baseline;
   gap: 5px;
   padding: 3px 8px;
-  border-radius: 4px;
-  background: var(--paper);
+  border-radius: var(--radius-control);
+  background: var(--bg);
   border: 1px solid var(--line);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 11px;
   transition: all 0.2s ease;
 }
 
 .tw-var-chip.highlight {
-  border-color: var(--blue);
-  background: var(--blue-soft);
+  border-color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .tw-var-name {
-  color: var(--blue);
+  color: var(--primary);
   font-weight: 600;
 }
 

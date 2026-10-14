@@ -1,21 +1,10 @@
 .lrsb {
-  --ink: #23262b;
-  --muted: #726c5d;
-  --line: #dcd5c0;
-  --paper: #f3efe4;
-  --paper-card: #fcfaf4;
-  --blue: #2f5d8a;
-  --blue-soft: #e4ecf3;
-  --rust: #a6462d;
-  --rust-soft: #f3e4df;
-  --good: #3f7d53;
-
   display: grid;
   grid-template-columns: 320px 1fr;
   border: 1px solid var(--line);
-  background: var(--paper-card);
+  background: var(--surface);
   color: var(--ink);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body);
 }
 
 @media (max-width: 800px) {
@@ -27,7 +16,7 @@
 .lrsb button {
   font-family: inherit;
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
 }
 
 .lrsb-input {
@@ -58,14 +47,14 @@
   padding: 7px 0;
   font-size: 12.5px;
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
 }
 
 .lrsb .modeRow button.active {
-  background: var(--blue-soft);
-  border-color: var(--blue);
-  color: var(--blue);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -90,23 +79,13 @@
 .lrsb .dataTable input {
   width: 100%;
   padding: 5px 6px;
-  border: 1px solid var(--line);
-  border-radius: 4px;
   font-size: 13px;
-  font-family: inherit;
-  background: #fff;
-  color: var(--ink);
-}
-
-.lrsb .dataTable input:focus {
-  outline: none;
-  border-color: var(--blue);
 }
 
 .lrsb .rmBtn {
   background: none;
   border: none;
-  color: var(--rust);
+  color: var(--danger);
   font-size: 15px;
   padding: 0 4px;
 }
@@ -118,20 +97,13 @@
 }
 
 .lrsb button.small {
-  font-size: 12px;
+  font-size: var(--fs-12);
   padding: 6px 10px;
-  border: 1px solid var(--line);
-  background: var(--paper);
-  color: var(--ink);
-}
-
-.lrsb button.small:hover {
-  background: #efeadb;
 }
 
 .lrsb .fileDrop {
   border: 1.5px dashed var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 18px;
   text-align: center;
   font-size: 12.5px;
@@ -154,20 +126,12 @@
 .lrsb .computeBtn {
   width: 100%;
   padding: 10px;
-  background: var(--blue);
-  color: #fff;
-  border: none;
   font-size: 13.5px;
-  font-weight: 500;
-}
-
-.lrsb .computeBtn:hover {
-  background: #274d73;
 }
 
 .lrsb .errBox {
-  background: var(--rust-soft);
-  border-left: 3px solid var(--rust);
+  background: var(--danger-soft);
+  border-left: 3px solid var(--danger);
   padding: 10px 12px;
   font-size: 12.5px;
   margin-top: 10px;
@@ -197,7 +161,7 @@
 }
 
 .lrsb .mseVal {
-  color: var(--rust);
+  color: var(--danger);
 }
 
 .lrsb svg {
@@ -209,14 +173,14 @@
 .lrsb .axLbl {
   font-size: 10.5px;
   fill: var(--muted);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 .lrsb .resultBox {
   margin-top: 14px;
   padding: 12px 14px;
-  background: var(--blue-soft);
-  border-left: 3px solid var(--blue);
+  background: var(--primary-soft);
+  border-left: 3px solid var(--primary);
   font-size: 13px;
   line-height: 1.6;
 }

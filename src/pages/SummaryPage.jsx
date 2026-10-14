@@ -21,7 +21,7 @@ function SummaryPage() {
 
   return (
     <section className="paper">
-      <div className="board sumBox">
+      <div className="panel board sumBox">
         <h1>Session summary</h1>
         <div className="sumStat">
           <span>Topic</span>
@@ -46,10 +46,10 @@ function SummaryPage() {
           </b>
         </div>
         <div className="sumFooter">
-          <Link className="ghostBtn" to={`/topic/${topicId}`}>
+          <Link className="btn btn--ghost ghostBtn" to={`/topic/${topicId}`}>
             Restart this topic
           </Link>
-          <Link className="primaryBtn" to="/">
+          <Link className="btn btn--primary primaryBtn" to="/">
             Explore another topic
           </Link>
         </div>

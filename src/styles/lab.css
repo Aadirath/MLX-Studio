@@ -11,7 +11,7 @@
 .paper .labNav {
   position: sticky;
   top: 16px;
-  background: var(--paper-card);
+  background: var(--surface);
   border: 1px solid var(--line);
   padding: 14px 10px;
 }
@@ -26,11 +26,11 @@
 }
 
 .paper .labNavIco {
-  font-size: 18px;
+  font-size: var(--fs-18);
 }
 
 .paper .labNavTopic {
-  font-family: 'Lora', serif;
+  font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15px;
   color: var(--ink);
@@ -47,7 +47,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 8px;
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   font-size: 13.5px;
   color: var(--ink);
   text-decoration: none;
@@ -55,13 +55,13 @@
 }
 
 .paper .labNavItem:hover {
-  background: #efeadb;
+  background: var(--hover);
 }
 
 .paper .labNavItem.active {
-  background: var(--blue-soft);
-  border-left-color: var(--blue);
-  color: var(--blue);
+  background: var(--primary-soft);
+  border-left-color: var(--primary);
+  color: var(--primary);
   font-weight: 600;
 }
 
@@ -71,7 +71,7 @@
   height: 22px;
   border-radius: 50%;
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: var(--bg);
   font-size: 11px;
   display: inline-flex;
   align-items: center;
@@ -80,9 +80,9 @@
 }
 
 .paper .labNavItem.active .labNavNum {
-  background: var(--blue);
-  border-color: var(--blue);
-  color: #fff;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
 }
 
 .paper .labNavTeacher {
@@ -90,13 +90,13 @@
   margin: 12px 6px 0;
   padding-top: 10px;
   border-top: 1px solid var(--line);
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
   text-decoration: none;
 }
 
 .paper .labNavTeacher:hover {
-  color: var(--blue);
+  color: var(--primary);
 }
 
 /* ---------- content ---------- */
@@ -105,7 +105,7 @@
 }
 
 .paper .labCard {
-  background: var(--paper-card);
+  background: var(--surface);
   border: 1px solid var(--line);
   padding: 24px 28px;
 }
@@ -114,7 +114,7 @@
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--blue);
+  color: var(--primary);
   font-weight: 600;
   margin: 0 0 4px;
 }
@@ -142,11 +142,11 @@
 }
 
 .paper .labPathStep {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--ink);
   text-decoration: none;
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: var(--bg);
   border-radius: 20px;
   padding: 5px 12px;
 }
@@ -157,8 +157,8 @@
 }
 
 .paper .labPathStep:hover {
-  border-color: var(--blue);
-  color: var(--blue);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .paper .labActions {
@@ -179,7 +179,7 @@
 .paper .labVideo {
   margin: 10px 0 18px;
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: var(--bg);
   padding: 10px 14px;
 }
 
@@ -203,7 +203,7 @@
 }
 
 .paper .theoryBlock h2 {
-  font-family: 'Lora', serif;
+  font-family: var(--font-heading);
   font-size: 17px;
   margin: 0 0 8px;
   color: var(--ink);
@@ -211,7 +211,7 @@
 
 .paper .theoryBlock p,
 .paper .theoryBlock li {
-  font-size: 14px;
+  font-size: var(--fs-14);
   line-height: 1.65;
   max-width: 70ch;
 }
@@ -226,10 +226,10 @@
 }
 
 .paper .theoryFormula {
-  font-family: 'Lora', serif;
-  font-size: 16px;
-  background: var(--blue-soft);
-  border-left: 3px solid var(--blue);
+  font-family: var(--font-heading);
+  font-size: var(--fs-16);
+  background: var(--primary-soft);
+  border-left: 3px solid var(--primary);
   padding: 10px 14px;
   margin: 6px 0 10px;
   overflow-x: auto;
@@ -254,7 +254,7 @@
   position: relative;
   padding: 10px 0 10px 40px;
   border-bottom: 1px solid var(--line);
-  font-size: 14px;
+  font-size: var(--fs-14);
   line-height: 1.55;
 }
 
@@ -266,9 +266,9 @@
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: var(--blue);
-  color: #fff;
-  font-size: 12px;
+  background: var(--primary);
+  color: var(--on-primary);
+  font-size: var(--fs-12);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -295,16 +295,16 @@
 }
 
 .paper .assessDot.done {
-  background: var(--blue);
+  background: var(--primary);
 }
 
 .paper .assessDot.current {
-  background: var(--rust);
+  background: var(--danger);
 }
 
 .paper .qOpt.picked {
-  background: var(--blue-soft);
-  border-color: var(--blue);
+  background: var(--primary-soft);
+  border-color: var(--primary);
 }
 
 .paper .scoreCard {
@@ -325,16 +325,16 @@
 
 .paper .scoreTrack {
   height: 10px;
-  background: var(--paper);
+  background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 
 .paper .scoreFill {
   display: block;
   height: 100%;
-  background: var(--blue);
+  background: var(--primary);
   transition: width 0.5s ease;
 }
 
@@ -359,8 +359,8 @@
 
 .paper .refList a {
   font-weight: 600;
-  font-size: 14px;
-  color: var(--blue);
+  font-size: var(--fs-14);
+  color: var(--primary);
 }
 
 .paper .refList span {
@@ -404,7 +404,7 @@
   }
 
   .paper .labNavItem.active {
-    border-bottom-color: var(--blue);
+    border-bottom-color: var(--primary);
   }
 
   .paper .labCard {

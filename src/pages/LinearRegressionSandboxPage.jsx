@@ -12,7 +12,7 @@ function LinearRegressionSandboxPage() {
       </p>
       <LinearRegressionSandbox />
       <div className="quizCta">
-        <Link className="ghostBtn" to="/linear-regression">
+        <Link className="btn btn--ghost ghostBtn" to="/linear-regression">
           Back to the guided lesson
         </Link>
       </div>

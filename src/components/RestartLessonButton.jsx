@@ -2,7 +2,7 @@
 function RestartLessonButton({ onRestart }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 8px' }}>
-      <button type="button" className="ghostBtn" onClick={onRestart}>
+      <button type="button" className="btn btn--ghost ghostBtn" onClick={onRestart}>
         Restart lesson
       </button>
     </div>

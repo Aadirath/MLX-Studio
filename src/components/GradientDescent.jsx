@@ -575,7 +575,7 @@ function GradientDescent({ onStateDescription, onExperiment } = {}) {
           <button
             key={p.id}
             type="button"
-            className={`datasetBtn${p.id === datasetId ? ' active' : ''}`}
+            className={`btn btn--secondary datasetBtn${p.id === datasetId ? ' active' : ''}`}
             aria-pressed={p.id === datasetId}
             onClick={() => handleDataset(p.id)}
           >
@@ -644,13 +644,13 @@ function GradientDescent({ onStateDescription, onExperiment } = {}) {
     <div className="gd">
       <div className="gd-controls">
         <div className="btnCol">
-          <button className="btnP" onClick={handleStep} disabled={state.done || running}>
+          <button className="btn btn--primary btnP" onClick={handleStep} disabled={state.done || running}>
             Step forward
           </button>
-          <button className="btnG" onClick={handleRun} disabled={state.done || running}>
+          <button className="btn btn--ghost btnG" onClick={handleRun} disabled={state.done || running}>
             {running ? 'Running…' : 'Run to convergence'}
           </button>
-          <button className="btnG" onClick={handleReset}>
+          <button className="btn btn--ghost btnG" onClick={handleReset}>
             Reset to step 0
           </button>
         </div>

@@ -1,7 +1,7 @@
 .tw-compact-status-bar {
-  background: var(--paper-card);
+  background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 10px 14px;
   display: flex;
   justify-content: space-between;
@@ -23,11 +23,11 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--blue);
-  background: var(--blue-soft);
+  color: var(--primary);
+  background: var(--primary-soft);
   padding: 2px 7px;
-  border-radius: 4px;
-  border: 1px solid var(--blue);
+  border-radius: var(--radius-control);
+  border: 1px solid var(--primary);
 }
 
 .tw-status-text {
@@ -37,7 +37,7 @@
 }
 
 .tw-status-sub {
-  font-size: 12px;
+  font-size: var(--fs-12);
   color: var(--muted);
 }
 
@@ -50,37 +50,37 @@
 
 .tw-explain-toggle-btn {
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--fs-12);
   font-weight: 500;
   padding: 4px 10px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
-  background: var(--paper);
+  background: var(--bg);
   color: var(--ink);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  transition: all 0.15s ease;
+  transition: all var(--transition);
 }
 
 .tw-explain-toggle-btn:hover {
-  background: #eae4d3;
-  border-color: var(--blue);
+  background: var(--inset);
+  border-color: var(--primary);
 }
 
 .tw-explain-toggle-btn.active {
-  background: var(--blue-soft);
-  border-color: var(--blue);
-  color: var(--blue);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 /* Expanded Drawer */
 .tw-expanded-drawer {
-  background: var(--paper-card);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-top: none;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 var(--radius-control) var(--radius-control);
   padding: 16px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -123,9 +123,9 @@
 }
 
 .tw-drawer-box {
-  background: var(--paper);
+  background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 8px 12px;
   font-size: 12.5px;
   line-height: 1.5;
@@ -133,16 +133,16 @@
 }
 
 .tw-drawer-box.highlight {
-  background: var(--blue-soft);
-  border-color: var(--blue);
+  background: var(--primary-soft);
+  border-color: var(--primary);
 }
 
 .tw-drawer-tip {
   grid-column: 1 / -1;
-  background: #fdf6e7;
-  border-left: 3px solid #d99a26;
+  background: var(--highlight-soft);
+  border-left: 3px solid var(--highlight);
   padding: 8px 12px;
-  font-size: 12px;
-  color: #5c4415;
-  border-radius: 0 4px 4px 0;
+  font-size: var(--fs-12);
+  color: var(--ink);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
 }

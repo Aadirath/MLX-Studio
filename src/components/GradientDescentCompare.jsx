@@ -291,7 +291,7 @@ function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescrip
               <button
                 key={i}
                 type="button"
-                className={`datasetBtn${prediction === i ? ' active' : ''}`}
+                className={`btn btn--secondary datasetBtn${prediction === i ? ' active' : ''}`}
                 aria-pressed={prediction === i}
                 onClick={() => setPrediction(i)}
               >
@@ -300,7 +300,7 @@ function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescrip
             ))}
             <button
               type="button"
-              className={`datasetBtn${prediction === 'none' ? ' active' : ''}`}
+              className={`btn btn--secondary datasetBtn${prediction === 'none' ? ' active' : ''}`}
               aria-pressed={prediction === 'none'}
               onClick={() => setPrediction('none')}
             >
@@ -311,13 +311,13 @@ function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescrip
       )}
 
       <div className="btnRowH">
-        <button type="button" className="btnP" disabled={running || finished || prediction === null} onClick={() => setRunning(true)}>
+        <button type="button" className="btn btn--primary btnP" disabled={running || finished || prediction === null} onClick={() => setRunning(true)}>
           {running ? 'Racing…' : upto === 0 ? 'Start the race' : 'Continue'}
         </button>
-        <button type="button" className="btnG" disabled={running || finished || prediction === null} onClick={() => setUpto((u) => u + 1)}>
+        <button type="button" className="btn btn--ghost btnG" disabled={running || finished || prediction === null} onClick={() => setUpto((u) => u + 1)}>
           One step
         </button>
-        <button type="button" className="btnG" onClick={() => reset()}>
+        <button type="button" className="btn btn--ghost btnG" onClick={() => reset()}>
           Reset
         </button>
         {prediction === null && upto === 0 && <span className="note">Make a prediction to start.</span>}

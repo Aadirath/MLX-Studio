@@ -247,10 +247,10 @@ function LinearRegressionSandbox() {
               </tbody>
             </table>
             <div className="btnRow">
-              <button className="small" onClick={() => setRows((rs) => [...rs, makeRow()])}>
+              <button className="btn btn--ghost small" onClick={() => setRows((rs) => [...rs, makeRow()])}>
                 + Add row
               </button>
-              <button className="small" onClick={clearRows}>
+              <button className="btn btn--ghost small" onClick={clearRows}>
                 Clear all
               </button>
             </div>
@@ -268,7 +268,7 @@ function LinearRegressionSandbox() {
           </div>
         )}
 
-        <button className="computeBtn" onClick={handleFit}>
+        <button className="btn btn--primary computeBtn" onClick={handleFit}>
           Fit a line to this data
         </button>
         {error && <div className="errBox">{error}</div>}

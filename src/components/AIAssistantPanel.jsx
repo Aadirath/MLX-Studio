@@ -153,7 +153,7 @@ function AIAssistantPanel({ topic, stateDescription = '', history = [] }) {
   }
 
   return (
-    <aside className="aiPanel" aria-label="AI assistant">
+    <aside className="panel aiPanel" aria-label="AI assistant">
       <h2 className="aiTitle">Stuck? Ask for a hint</h2>
       <div className="aiLang" role="group" aria-label="Assistant language">
         {LANGUAGES.map((l) => (
@@ -178,7 +178,7 @@ function AIAssistantPanel({ topic, stateDescription = '', history = [] }) {
           placeholder="What are you unsure about?"
           aria-label="Your question"
         />
-        <button className="primaryBtn aiAsk" type="submit" disabled={loading || !question.trim()}>
+        <button className="btn btn--primary primaryBtn aiAsk" type="submit" disabled={loading || !question.trim()}>
           {loading ? 'Thinking…' : 'Ask'}
         </button>
       </form>
