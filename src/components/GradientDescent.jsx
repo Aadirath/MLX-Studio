@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { useSessionState } from '../hooks/useSessionState.js'
+import { useStepShortcuts } from '../hooks/useStepShortcuts.js'
 import { createSonifier } from '../utils/sound.js'
 import SoundToggle from './SoundToggle.jsx'
+import Segmented from './lab/Segmented.jsx'
+import StatusStrip from './lab/StatusStrip.jsx'
 import GradientDescentCompare from './GradientDescentCompare.jsx'
 import './GradientDescent.css'
 
@@ -88,8 +91,8 @@ export const H = 400
 export const PAD = { l: 50, r: 20, t: 14, b: 36 }
 export const plotW = W - PAD.l - PAD.r
 export const plotH = H - PAD.t - PAD.b
-const GRID_X = 44
-const GRID_Y = 32
+const GRID_X = 88
+const GRID_Y = 64
 export const cellW = plotW / GRID_X
 export const cellH = plotH / GRID_Y
 
@@ -102,13 +105,31 @@ function mseOf(X, Y, b1, b0) {
   return s / X.length
 }
 
-// paper (#F3EFE4) -> blue (#2F5D8A)
-function lerpColor(t) {
-  const a = [0xf3, 0xef, 0xe4]
-  const b = [0x2f, 0x5d, 0x8a]
-  const c = a.map((av, i) => Math.round(av + (b[i] - av) * t))
-  return `rgb(${c[0]},${c[1]},${c[2]})`
+// Viridis, from purple (high error) to yellow (low error), drawn in 14 flat bands.
+const VIRIDIS = ['#440154', '#482878', '#3E4A89', '#31688E', '#26828E', '#1F9E89', '#35B779', '#6DCD59', '#B4DE2C', '#FDE725'].map(
+  (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)],
+)
+export const BANDS = 14
+const EDGE_SHADE = 0.74
+
+// t = 0 is the purple end, t = 1 the yellow end.
+function viridis(t) {
+  const x = Math.min(1, Math.max(0, t)) * (VIRIDIS.length - 1)
+  const i = Math.min(VIRIDIS.length - 2, Math.floor(x))
+  const f = x - i
+  return VIRIDIS[i].map((a, k) => a + (VIRIDIS[i + 1][k] - a) * f)
 }
+
+// Band 0 is the lowest error (yellow), band 13 the highest (purple).
+const bandRgb = (band) => viridis(1 - (band + 0.5) / BANDS)
+const rgbCss = ([r, g, b], shade = 1) => `rgb(${Math.round(r * shade)},${Math.round(g * shade)},${Math.round(b * shade)})`
+
+// The legend bar uses the same 14 flat bands as the heatmap.
+export const LEGEND_GRADIENT = `linear-gradient(90deg, ${Array.from({ length: BANDS }, (_, band) => {
+  const from = ((band / BANDS) * 100).toFixed(3)
+  const to = (((band + 1) / BANDS) * 100).toFixed(3)
+  return `${rgbCss(bandRgb(band))} ${from}% ${to}%`
+}).join(', ')})`
 
 // Everything that depends on the chosen dataset, worked out once per preset.
 function buildDataset(p) {
@@ -149,19 +170,28 @@ function buildDataset(p) {
     py: (b0) => PAD.t + plotH - ((b0 - B0_MIN) / (B0_MAX - B0_MIN)) * plotH,
   }
 
-  // Colour scale is relative to this preset: lightest at the minimum, saturating at 3.5x the start's excess error.
+  // Colour scale is relative to this preset: yellow at the minimum, purple at 3.5x the start's excess error.
   const denom = 3.5 * (startErr - minErr)
-  d.heat = []
+  const band = []
   for (let i = 0; i < GRID_X; i++) {
     const b1 = B1_MIN + ((i + 0.5) * (B1_MAX - B1_MIN)) / GRID_X
     for (let j = 0; j < GRID_Y; j++) {
       const b0 = B0_MIN + ((j + 0.5) * (B0_MAX - B0_MIN)) / GRID_Y
       const t = Math.min(1, Math.sqrt(Math.max(0, mseOf(X, Y, b1, b0) - minErr) / denom))
+      band[i * GRID_Y + j] = Math.min(BANDS - 1, Math.floor(Math.min(t, 0.9999) * BANDS))
+    }
+  }
+  // A cell whose left or upper neighbour is in another band is drawn a little darker, which outlines each band.
+  d.heat = []
+  for (let i = 0; i < GRID_X; i++) {
+    for (let j = 0; j < GRID_Y; j++) {
+      const own = band[i * GRID_Y + j]
+      const edge = (i > 0 && band[(i - 1) * GRID_Y + j] !== own) || (j < GRID_Y - 1 && band[i * GRID_Y + j + 1] !== own)
       d.heat.push({
         key: `${i}-${j}`,
         x: PAD.l + i * cellW,
         y: PAD.t + plotH - (j + 1) * cellH,
-        fill: lerpColor(t),
+        fill: rgbCss(bandRgb(own), edge ? EDGE_SHADE : 1),
       })
     }
   }
@@ -297,12 +327,25 @@ function replay(d, lr, steps) {
 export function starPoints(cx, cy) {
   const pts = []
   for (let i = 0; i < 10; i++) {
-    const r = i % 2 === 0 ? 7 : 3
+    const r = i % 2 === 0 ? 10 : 4.5
     const a = Math.PI / 2 + (i * Math.PI) / 5
     pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy - r * Math.sin(a)).toFixed(1)}`)
   }
   return pts.join(' ')
 }
+
+// The 5,600 coloured cells never change for a given dataset, so they are drawn once.
+export const HeatLayer = memo(function HeatLayer({ d }) {
+  return (
+    <g shapeRendering="crispEdges">
+      {d.heat.map((c) => (
+        <rect key={c.key} x={c.x.toFixed(1)} y={c.y.toFixed(1)} width={(cellW + 0.6).toFixed(1)} height={(cellH + 0.6).toFixed(1)} fill={c.fill} />
+      ))}
+    </g>
+  )
+})
+
+const TRAIL_OUTLINE = 'rgba(8, 12, 30, 0.7)'
 
 function ErrorSurface({ d, b1, b0, path }) {
   const { px, py, B1_MIN, B1_MAX, B0_MIN, B0_MAX } = d
@@ -314,9 +357,7 @@ function ErrorSurface({ d, b1, b0, path }) {
   const [curX, curY] = edge([b1, b0])
   return (
     <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Heatmap of error across slope and intercept values for the ${d.name} data, with the gradient descent path overlaid`}>
-      {d.heat.map((c) => (
-        <rect key={c.key} x={c.x.toFixed(1)} y={c.y.toFixed(1)} width={(cellW + 0.6).toFixed(1)} height={(cellH + 0.6).toFixed(1)} fill={c.fill} />
-      ))}
+      <HeatLayer d={d} />
       <line x1={px(B1_MIN)} y1={py(B0_MIN)} x2={px(B1_MAX)} y2={py(B0_MIN)} stroke="var(--ink)" strokeWidth="1" opacity="0.4" />
       <line x1={px(B1_MIN)} y1={py(B0_MIN)} x2={px(B1_MIN)} y2={py(B0_MAX)} stroke="var(--ink)" strokeWidth="1" opacity="0.4" />
       <text className="axLbl" x={PAD.l + plotW / 2} y="396" textAnchor="middle">
@@ -327,26 +368,27 @@ function ErrorSurface({ d, b1, b0, path }) {
       </text>
       {path.length > 1 && (
         <>
-          <polyline points={pts} fill="none" stroke="var(--rust)" strokeWidth="2" />
+          <polyline points={pts} fill="none" stroke={TRAIL_OUTLINE} strokeWidth="5" strokeLinejoin="round" />
+          <polyline points={pts} fill="none" stroke="#fff" strokeWidth="2.2" strokeLinejoin="round" />
           {path.map((p, i) => {
             const [ex, ey] = edge(p)
             if (outsideChart(d, p[0], p[1])) {
               return (
                 <g key={i}>
-                  <rect x={ex - 6} y={ey - 6} width="12" height="12" fill="#fff" stroke="var(--rust)" strokeWidth="2" transform={`rotate(45 ${ex} ${ey})`} />
-                  <text x={ex} y={ey + 3.5} textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--rust)">
+                  <rect x={ex - 6} y={ey - 6} width="12" height="12" fill="#fff" stroke={TRAIL_OUTLINE} strokeWidth="2" transform={`rotate(45 ${ex} ${ey})`} />
+                  <text x={ex} y={ey + 3.5} textAnchor="middle" fontSize="10" fontWeight="700" fill="#1b1b1f">
                     !
                   </text>
                 </g>
               )
             }
-            return <circle key={i} cx={ex.toFixed(1)} cy={ey.toFixed(1)} r="3" fill="var(--rust)" />
+            return <circle key={i} cx={ex.toFixed(1)} cy={ey.toFixed(1)} r="3" fill="#fff" stroke={TRAIL_OUTLINE} strokeWidth="1" />
           })}
         </>
       )}
-      <circle cx={px(d.startB1)} cy={py(d.startB0)} r="5" fill="none" stroke="var(--ink)" strokeWidth="1.5" />
-      <polygon points={starPoints(px(d.olsB1), py(d.olsB0))} fill="#D9B44A" stroke="var(--ink)" strokeWidth="0.5" />
-      <circle cx={curX.toFixed(1)} cy={curY.toFixed(1)} r="6" fill="var(--blue)" stroke="#fff" strokeWidth="1.5" />
+      <circle cx={px(d.startB1)} cy={py(d.startB0)} r="5" fill="none" stroke="#fff" strokeWidth="2" />
+      <polygon points={starPoints(px(d.olsB1), py(d.olsB0))} fill="#fde725" stroke="rgba(8, 12, 30, 0.9)" strokeWidth="1.4" strokeLinejoin="round" />
+      <circle cx={curX.toFixed(1)} cy={curY.toFixed(1)} r="7" fill="var(--primary)" stroke="#fff" strokeWidth="2.5" />
     </svg>
   )
 }
@@ -367,8 +409,8 @@ function MiniFit({ d, b1, b0 }) {
           <rect x={MINI.l} y={MINI.t} width={pw} height={ph} />
         </clipPath>
       </defs>
-      <line x1={mx(x0)} y1={my(y0)} x2={mx(x0)} y2={my(y1)} stroke="#C9C1A8" />
-      <line x1={mx(x0)} y1={my(y0)} x2={mx(x1)} y2={my(y0)} stroke="#C9C1A8" />
+      <line x1={mx(x0)} y1={my(y0)} x2={mx(x0)} y2={my(y1)} stroke="var(--line-strong)" />
+      <line x1={mx(x0)} y1={my(y0)} x2={mx(x1)} y2={my(y0)} stroke="var(--line-strong)" />
       {d.X.map((x, i) => (
         <circle key={i} cx={mx(x)} cy={my(d.Y[i])} r="3" fill="var(--ink)" />
       ))}
@@ -377,7 +419,7 @@ function MiniFit({ d, b1, b0 }) {
         y1={my(b1 * x0 + b0)}
         x2={mx(x1)}
         y2={my(b1 * x1 + b0)}
-        stroke="var(--blue)"
+        stroke="var(--primary)"
         strokeWidth="2"
         clipPath="url(#gd-mini-clip)"
       />
@@ -405,6 +447,29 @@ function JumpNav({ current, onJump }) {
       </ol>
     </div>
   )
+}
+
+// Learning-rate zones for the slider track: green up to LR_OK, amber up to LR_WARN, red above.
+const LR_OK = 0.5
+const LR_WARN = 1.0
+const lrPercent = (v) => ((v - LR_MIN) / (LR_MAX - LR_MIN)) * 100
+const lrZone = (v) => (v <= LR_OK ? 'slow to one step' : v <= LR_WARN ? 'bounces' : 'diverges')
+
+// Status chip: always a word, never colour alone.
+const END_CHIP = {
+  diverging: { state: 'diverging', text: 'Diverging' },
+  bouncing: { state: 'bouncing', text: 'Bouncing' },
+  zigzag: { state: 'zigzag', text: 'Zigzagging' },
+  small: { state: 'slow', text: 'Too slow' },
+  unclear: { state: 'slow', text: 'Not settled' },
+}
+
+function chipFor(run, running) {
+  if (run.step === 0) return { state: 'ready', text: 'Ready' }
+  if (run.converged) return { state: 'converged', text: 'Settled' }
+  if (run.done) return END_CHIP[run.diagnosis] || END_CHIP.unclear
+  if (run.errs[run.errs.length - 1] > run.errs[run.errs.length - 2]) return { state: 'diverging', text: 'Error rising' }
+  return { state: 'descending', text: running ? 'Descending, running' : 'Descending' }
 }
 
 export const fmtErr = (v) => (v >= 100 ? v.toFixed(0) : v.toFixed(3))
@@ -567,22 +632,24 @@ function GradientDescent({ onStateDescription, onExperiment } = {}) {
     put(initState(DATASETS[id]))
   }
 
+  // Space steps and R resets, except while a button, input or select has focus.
+  useStepShortcuts({
+    enabled: mode === 'single',
+    onStep: () => {
+      if (!state.done && !running) handleStep()
+    },
+    onReset: handleReset,
+  })
+
   const datasetPicker = (
     <div className="datasetPicker">
-      <div className="datasetRow" role="group" aria-label="Dataset">
-        {PRESETS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className={`btn btn--secondary datasetBtn${p.id === datasetId ? ' active' : ''}`}
-            aria-pressed={p.id === datasetId}
-            onClick={() => handleDataset(p.id)}
-          >
-            {p.name}
-          </button>
-        ))}
-      </div>
-      <p className="note">{d.description}</p>
+      <Segmented
+        legend="Dataset"
+        value={datasetId}
+        onChange={handleDataset}
+        options={PRESETS.map((p) => ({ value: p.id, label: p.name }))}
+      />
+      <p className="hint">{d.description}</p>
     </div>
   )
 
@@ -626,92 +693,119 @@ function GradientDescent({ onStateDescription, onExperiment } = {}) {
     )
   }
 
+  const chip = chipFor(state, running)
+  const zone = lrZone(lr)
+
   return (
     <>
-    {modeTabs}
-    <div className="gd">
-      <div className="gd-controls">
-        <div className="btnCol">
-          <button className="btn btn--primary btnP" onClick={handleStep} disabled={state.done || running}>
-            Step forward
-          </button>
-          <button className="btn btn--ghost btnG" onClick={handleRun} disabled={state.done || running}>
-            {running ? 'Running…' : 'Run to convergence'}
-          </button>
-          <button className="btn btn--ghost btnG" onClick={handleReset}>
-            Reset to step 0
-          </button>
-        </div>
-        <SoundToggle
-          checked={soundOn}
-          onChange={setSoundOn}
-          legend="Higher pitch means more error. The sound moves left or right depending on which side of the best slope you are on. A steady low note in the centre means it has settled."
-          status={soundNote}
+      {modeTabs}
+      <div className="gdBench">
+        <StatusStrip
+          metrics={[
+            { label: 'Step', value: state.step },
+            { label: 'Error', value: m.toFixed(3) },
+            { label: 'Lowest possible', value: d.minErr.toFixed(3) },
+          ]}
+          chip={chip}
         />
-        <div className="lrControl">
-          <label htmlFor="gd-lr" className="lrLabel">
-            Learning rate <b>{lr.toFixed(2)}</b>
-          </label>
-          <input id="gd-lr" type="range" min={LR_MIN} max={LR_MAX} step={LR_STEP} value={lr} onChange={handleLr} />
-          <p className="note">The learning rate is a hyperparameter. Try 0.05, 0.50 and 1.10 and watch the path.</p>
-          <div className="legendLabels">
-            <span>{LR_MIN.toFixed(2)}</span>
-            <span>{LR_MAX.toFixed(2)}</span>
-          </div>
-        </div>
-        <p className="note">Each step moves in the steepest downhill direction on this surface, the same idea as rolling a ball down a hill.</p>
-        <div>
-          <div className="note" style={{ marginBottom: 6 }}>
-            Error (darker = worse)
-          </div>
-          <div className="legendBar" />
-          <div className="legendLabels">
-            <span>Low</span>
-            <span>High</span>
-          </div>
-        </div>
-      </div>
 
-      <div className="gd-main">
-        {datasetPicker}
-        <div className="chartRow">
-          <span className="chartTitle">Error surface: every possible slope × intercept</span>
-          <div className="readouts">
-            <span>
-              Step <b>{state.step}</b>
-            </span>
-            <span>
-              Error (MSE) <b className="mseVal">{m.toFixed(3)}</b>
-            </span>
-            <span>
-              Lowest possible error <b>{d.minErr.toFixed(3)}</b>
-            </span>
+        <div className="stage">
+          <figure className="map">
+            <ErrorSurface d={d} b1={b1} b0={b0} path={state.path} />
+            <figcaption className="legend">
+              <span>Lower error</span>
+              <i className="legendBar" style={{ background: LEGEND_GRADIENT }} aria-hidden="true" />
+              <span>Higher error</span>
+            </figcaption>
+          </figure>
+          <div className="fit">
+            <h2>What this line looks like</h2>
+            <MiniFit d={d} b1={b1} b0={b0} />
+            <p className="eq">
+              ŷ = {b0.toFixed(2)} + {b1.toFixed(2)}x
+            </p>
+            <p className="cap">
+              x: {d.xLabel}. y: {d.yLabel}.
+            </p>
+            <JumpNav current={state.step} onJump={handleJump} />
           </div>
         </div>
-        <ErrorSurface d={d} b1={b1} b0={b0} path={state.path} />
+
         {leftChart && (
           <div className="chartNote" role="status">
             The path has left the chart. Points beyond the edge are drawn at the nearest edge with a ! marker.
           </div>
         )}
-        <div className="annotation">
+        <p className="msg" role="status" aria-live="polite">
           {state.step > 0 && <span className="tag">Step {state.step}</span>}
           {state.note}
+        </p>
+
+        <div className="controls">
+          <div className="row">
+            <div className="row-label">Dataset</div>
+            {datasetPicker}
+          </div>
+          <div className="row">
+            <div className="row-label">
+              <label htmlFor="gd-lr">Learning rate</label>
+              <output htmlFor="gd-lr">{lr.toFixed(2)}</output>
+            </div>
+            <input
+              id="gd-lr"
+              className="zoneRange"
+              type="range"
+              min={LR_MIN}
+              max={LR_MAX}
+              step={LR_STEP}
+              value={lr}
+              aria-valuetext={`${lr.toFixed(2)}, ${zone}`}
+              style={{ '--zone-ok': `${lrPercent(LR_OK)}%`, '--zone-warn': `${lrPercent(LR_WARN)}%` }}
+              onChange={handleLr}
+            />
+            <div className="lr-scale" aria-hidden="true">
+              <span className="first" style={{ left: 0 }}>
+                <b>{LR_MIN.toFixed(2)}</b>slow
+              </span>
+              <span style={{ left: `${lrPercent(LR_OK)}%` }}>
+                <b>{LR_OK.toFixed(2)}</b>one step
+              </span>
+              <span style={{ left: `${lrPercent(LR_WARN)}%` }}>
+                <b>{LR_WARN.toFixed(2)}</b>bounces
+              </span>
+              <span className="last" style={{ left: '100%' }}>
+                <b>above {LR_WARN.toFixed(1)}</b>diverges
+              </span>
+            </div>
+            <p className="hint">The learning rate is a hyperparameter. Try 0.05, 0.50 and 1.10 and watch the path.</p>
+          </div>
+          <div className="row">
+            <div className="actions">
+              <button type="button" className="btn btn--primary" onClick={handleStep} disabled={state.done || running}>
+                Step forward <kbd>Space</kbd>
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={handleRun} disabled={state.done || running}>
+                {running ? 'Running…' : 'Run to convergence'}
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={handleReset}>
+                Reset to step 0 <kbd>R</kbd>
+              </button>
+            </div>
+            <p className="hint">
+              Each step moves in the steepest downhill direction on this surface, the same idea as rolling a ball down a
+              hill.
+            </p>
+          </div>
+          <div className="row">
+            <SoundToggle
+              checked={soundOn}
+              onChange={setSoundOn}
+              legend="Higher pitch means more error. The sound moves left or right depending on which side of the best slope you are on. A steady low note in the centre means it has settled."
+              status={soundNote}
+            />
+          </div>
         </div>
       </div>
-
-      <div className="gd-side">
-        <h3>What this line looks like</h3>
-        <MiniFit d={d} b1={b1} b0={b0} />
-        <p className="note" style={{ marginTop: 4 }}>
-          x: {d.xLabel}. y: {d.yLabel}.
-        </p>
-        <p className="note" style={{ marginTop: 8 }}>
-          ŷ = {b0.toFixed(2)} + {b1.toFixed(2)}x
-        </p>
-        <JumpNav current={state.step} onJump={handleJump} />
-      </div>
-    </div>
     </>
   )
 }

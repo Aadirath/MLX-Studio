@@ -1,41 +1,85 @@
 .aiPanel {
-  margin-top: 16px;
-  padding: 14px 16px;
+  margin: 0;
+  padding: 16px;
+  background: var(--coach-bg);
+  border: 1px solid color-mix(in srgb, var(--coach) 40%, transparent);
+  border-radius: var(--radius-panel);
+  box-shadow: none;
+}
+
+.aiHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .aiTitle {
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 600;
-  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--coach);
 }
 
 .aiForm {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
+  margin-top: 12px;
 }
 
 .aiInput {
   flex: 1;
-  font-size: 13.5px;
-  padding: 8px 10px;
+  min-width: 0;
+  font-size: var(--fs-14);
+  padding: 8px 12px;
   resize: vertical;
 }
 
-.aiAsk:disabled {
+.aiAsk:disabled,
+.aiNext:disabled {
   opacity: 0.6;
-  cursor: default;
+  cursor: not-allowed;
 }
 
-.aiReply:empty {
+/* the conversation: the learner's question, then the coach's reply */
+.aiThread {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 290px;
+  overflow: auto;
+  padding: 2px;
+}
+
+.aiThread:empty {
   display: none;
 }
 
-.aiReply p {
-  margin: 10px 0 0;
-  font-size: 13px;
+.bubble {
+  margin: 0;
+  padding: 10px 12px;
+  max-width: 94%;
+  border-radius: 12px;
+  font-size: 0.95rem;
   line-height: 1.55;
+}
+
+.bubble--coach {
+  align-self: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+
+.bubble--you {
+  align-self: flex-end;
+  background: var(--raise);
 }
 
 .aiLoading {
@@ -43,57 +87,29 @@
 }
 
 .aiError {
+  margin: 0;
   color: var(--danger);
-  font-size: 12.5px;
+  font-size: 0.85rem;
+  line-height: 1.5;
 }
 
-.aiText {
-  padding: 10px 12px;
-  background: var(--primary-soft);
-  border-left: 3px solid var(--primary);
-}
-
-.aiLang {
-  display: flex;
-  gap: 6px;
-  margin: 0 0 10px;
-}
-
-.aiLangBtn,
 .aiNext {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 12px;
   font-family: inherit;
-  font-size: 12.5px;
-  padding: 5px 10px;
-  background: var(--primary-soft);
-  border: 1px solid var(--primary);
+  font-size: var(--fs-14);
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
-  color: var(--primary);
+  color: var(--ink);
   cursor: pointer;
 }
 
-.aiLangBtn:hover,
 .aiNext:hover:not(:disabled) {
-  background: var(--primary-soft-hover);
-}
-
-.aiLangBtn.active {
-  background: var(--primary);
-  color: var(--on-primary);
-}
-
-.aiLangBtn:focus-visible,
-.aiNext:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-.aiNext {
-  margin-top: 10px;
-}
-
-.aiNext:disabled {
-  opacity: 0.6;
-  cursor: default;
+  background: var(--hover);
 }
 
 .aiSpeech {
@@ -105,27 +121,22 @@
 
 .aiListen {
   font-family: inherit;
-  font-size: 12.5px;
-  padding: 5px 10px;
-  background: var(--primary-soft);
-  border: 1px solid var(--primary);
+  font-size: 0.85rem;
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px solid var(--coach);
   border-radius: var(--radius-control);
-  color: var(--primary);
+  color: var(--coach);
   cursor: pointer;
 }
 
 .aiListen:hover:not(:disabled) {
-  background: var(--primary-soft-hover);
+  background: var(--surface);
 }
 
 .aiListen:disabled {
   opacity: 0.6;
-  cursor: default;
-}
-
-.aiListen:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+  cursor: not-allowed;
 }
 
 .aiSpeechNote {
@@ -135,7 +146,7 @@
 
 .aiSpeechError {
   margin: 6px 0 0;
-  font-size: 12.5px;
+  font-size: 0.85rem;
   color: var(--danger);
 }
 

@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   H,
+  HeatLayer,
   LR_MAX,
   LR_MIN,
   LR_STEP,
   PAD,
   W,
   advance,
-  cellH,
-  cellW,
   fmtErr,
   initState,
   outsideChart,
@@ -76,9 +75,7 @@ function CompareSurface({ d, runs, upto }) {
       role="img"
       aria-label={`Error surface for the ${d.name} data with ${runs.length} descent paths, one per learning rate`}
     >
-      {d.heat.map((c) => (
-        <rect key={c.key} x={c.x.toFixed(1)} y={c.y.toFixed(1)} width={(cellW + 0.6).toFixed(1)} height={(cellH + 0.6).toFixed(1)} fill={c.fill} />
-      ))}
+      <HeatLayer d={d} />
       <line x1={px(B1_MIN)} y1={py(B0_MIN)} x2={px(B1_MAX)} y2={py(B0_MIN)} stroke="var(--ink)" opacity="0.4" />
       <line x1={px(B1_MIN)} y1={py(B0_MIN)} x2={px(B1_MIN)} y2={py(B0_MAX)} stroke="var(--ink)" opacity="0.4" />
       <text className="axLbl" x={PAD.l + plotW / 2} y="396" textAnchor="middle">
@@ -87,8 +84,8 @@ function CompareSurface({ d, runs, upto }) {
       <text className="axLbl" x="16" y={PAD.t + plotH / 2} textAnchor="middle" transform={`rotate(-90 16 ${PAD.t + plotH / 2})`}>
         Intercept (b₀)
       </text>
-      <polygon points={starPoints(px(d.olsB1), py(d.olsB0))} fill="#D9B44A" stroke="var(--ink)" strokeWidth="0.5" />
-      <circle cx={px(d.startB1)} cy={py(d.startB0)} r="6" fill="none" stroke="var(--ink)" strokeWidth="1.5" />
+      <circle cx={px(d.startB1)} cy={py(d.startB0)} r="6" fill="none" stroke="#fff" strokeWidth="2" />
+      <polygon points={starPoints(px(d.olsB1), py(d.olsB0))} fill="#fde725" stroke="rgba(8, 12, 30, 0.9)" strokeWidth="1.4" strokeLinejoin="round" />
       {runs.map((run, ri) => {
         const shown = run.path.slice(0, Math.min(upto, run.path.length - 1) + 1)
         const pts = shown.map((p) => edge(p).map((v) => v.toFixed(1)).join(',')).join(' ')

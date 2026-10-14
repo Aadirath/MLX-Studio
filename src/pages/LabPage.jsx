@@ -11,6 +11,7 @@ import GradientDescentPage from './GradientDescentPage.jsx'
 import NotFound from './NotFound.jsx'
 import '../styles/paper.css'
 import '../styles/lab.css'
+import '../styles/workbench.css'
 
 const SIMULATIONS = {
   'linear-regression': LinearRegressionPage,
@@ -37,7 +38,9 @@ function allIndices(topicId) {
 function LabSidebar({ topicId, topic, current }) {
   const { getAssessment } = useSession()
   const a = getAssessment(topicId)
-  const done = { pretest: Boolean(a.pre), posttest: Boolean(a.post) }
+  const taken = { pretest: Boolean(a.pre), posttest: Boolean(a.post) }
+  const currentIndex = LAB_SECTION_IDS.indexOf(current)
+  const total = LAB_SECTIONS.length
   return (
     <nav className="labNav" aria-label={`${topic.name} sections`}>
       <div className="labNavHead">
@@ -47,19 +50,35 @@ function LabSidebar({ topicId, topic, current }) {
         <span className="labNavTopic">{topic.name}</span>
       </div>
       <ol className="labNavList">
-        {LAB_SECTIONS.map((s, i) => (
-          <li key={s.id}>
-            <NavLink
-              to={`/topic/${topicId}/${s.id}`}
-              className={`labNavItem${s.id === current ? ' active' : ''}`}
-              aria-current={s.id === current ? 'page' : undefined}
-            >
-              <span className="labNavNum">{done[s.id] ? '✓' : i + 1}</span>
-              <span>{s.label}</span>
-            </NavLink>
-          </li>
-        ))}
+        {LAB_SECTIONS.map((s, i) => {
+          const state = i === currentIndex ? 'current' : i < currentIndex || taken[s.id] ? 'done' : 'upcoming'
+          return (
+            <li key={s.id}>
+              <NavLink
+                to={`/topic/${topicId}/${s.id}`}
+                className={`labNavItem ${state}`}
+                aria-current={state === 'current' ? 'page' : undefined}
+              >
+                <span className="labNavMark" aria-hidden="true">
+                  {state === 'done' && (
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12l5 5 9-10" />
+                    </svg>
+                  )}
+                </span>
+                <span>{s.label}</span>
+                {state === 'done' && <span className="srOnly">(done)</span>}
+              </NavLink>
+            </li>
+          )
+        })}
       </ol>
+      <div className="labProgress" role="img" aria-label={`Section ${currentIndex + 1} of ${total}`}>
+        <span style={{ width: `${(currentIndex / total) * 100}%` }} />
+      </div>
+      <p className="labProgressNote">
+        Section {currentIndex + 1} of {total}
+      </p>
       <Link className="labNavTeacher" to={TEACHER_PATHS[topicId]}>
         Open in Teacher Mode →
       </Link>
@@ -347,7 +366,7 @@ function LabPage() {
   else body = <ReferencesSection content={content} />
 
   return (
-    <section className="paper lab">
+    <section className={`paper lab${section === 'simulation' ? ' lab--sim' : ''}`}>
       <LabSidebar topicId={topicId} topic={topic} current={section} />
       <div className="labMain">
         {body}

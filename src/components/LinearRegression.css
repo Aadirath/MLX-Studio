@@ -1,16 +1,30 @@
 .linreg {
   display: grid;
-  grid-template-columns: 220px 1fr 200px;
-  gap: 0;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  grid-template-columns: minmax(0, 1fr) 190px;
+  grid-template-areas:
+    'controls nav'
+    'main nav';
+  gap: 16px 22px;
+  align-items: start;
   color: var(--ink);
   font-family: var(--font-body);
 }
 
-@media (max-width: 720px) {
-  .linreg {
-    grid-template-columns: 1fr;
+.linreg.linreg--bench {
+  grid-template-areas:
+    'main nav'
+    'controls nav';
+}
+
+@media (max-width: 820px) {
+  .linreg,
+  .linreg.linreg--bench {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'controls' 'main' 'nav';
+  }
+
+  .linreg.linreg--bench {
+    grid-template-areas: 'main' 'controls' 'nav';
   }
 }
 
@@ -22,22 +36,34 @@
 }
 
 .linreg-controls {
-  padding: 20px 18px;
-  border-right: 1px solid var(--line);
+  grid-area: controls;
+  min-width: 0;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
-@media (max-width: 720px) {
-  .linreg-controls {
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-  }
+.linreg-controls .field {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
 }
 
 .linreg-main {
-  padding: 20px 22px;
+  grid-area: main;
+  min-width: 0;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-panel);
+}
+
+.linreg-stagenav {
+  grid-area: nav;
+  min-width: 0;
 }
 
 .linreg .field label {
@@ -363,21 +389,12 @@
 }
 
 .linreg-stagenav {
-  padding: 20px 16px;
-  border-left: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-@media (max-width: 720px) {
-  .linreg-stagenav {
-    border-left: none;
-    border-top: 1px solid var(--line);
-  }
-}
-
-.linreg .stageNavTitle {
+.paper .linreg .stageNavTitle {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -385,7 +402,7 @@
   margin: 0;
 }
 
-.linreg .stageList {
+.paper .linreg .stageList {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -394,7 +411,7 @@
   gap: 2px;
 }
 
-.linreg .stageNavItem {
+.paper .linreg .stageNavItem {
   width: 100%;
   text-align: left;
   background: transparent;
@@ -405,22 +422,22 @@
   padding: 7px 8px;
 }
 
-.linreg .stageNavItem:hover:not(:disabled) {
+.paper .linreg .stageNavItem:hover:not(:disabled) {
   background: var(--hover);
   color: var(--ink);
 }
 
-.linreg .stageNavItem.active {
+.paper .linreg .stageNavItem.active {
   background: var(--primary-soft);
   border-color: var(--primary) !important;
   color: var(--primary);
   font-weight: 600;
 }
 
-.linreg .stageNavItem.locked {
+.paper .linreg .stageNavItem.locked {
   color: var(--line-strong);
 }
 
-.linreg .stageNavItem:disabled {
+.paper .linreg .stageNavItem:disabled {
   cursor: not-allowed;
 }

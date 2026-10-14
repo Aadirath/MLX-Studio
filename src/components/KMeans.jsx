@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import GoFurtherPanel from './GoFurtherPanel.jsx'
 import { useSessionState } from '../hooks/useSessionState.js'
+import { useStepShortcuts } from '../hooks/useStepShortcuts.js'
 import { createSonifier } from '../utils/sound.js'
 import SoundToggle from './SoundToggle.jsx'
+import Segmented from './lab/Segmented.jsx'
+import StatusStrip from './lab/StatusStrip.jsx'
 import {
   MAX_FILE_BYTES,
   MAX_POINTS,
@@ -743,6 +746,15 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
     setReflectPick(null)
   }
 
+  // Space steps and R resets in the stepping stage, except while a button, input or select has focus.
+  useStepShortcuts({
+    enabled: stage === 'stepping',
+    onStep: () => {
+      if (!awaitingGuess && !sim.done && !running) handleStepClick()
+    },
+    onReset: handleReset,
+  })
+
   // ---------- stage: table (get familiar with the raw data first) ----------
   if (stage === 'table') {
     const canContinue = !editing || (source === 'custom' && !draftDirty)
@@ -896,19 +908,17 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
             groups yet. How would you group them?
           </p>
           <p className="note">Pick how many groups (K) feels natural to you.</p>
-          <div className="choiceRow">
-            {K_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                className={`btn btn--secondary guessBtn${k === opt ? ' active' : ''}`}
-                onClick={() => changeK(opt)}
-                disabled={distinctCount < opt}
-                title={distinctCount < opt ? `Your data has only ${distinctCount} distinct points` : undefined}
-              >
-                {opt} groups
-              </button>
-            ))}
-          </div>
+          <Segmented
+            legend="Number of groups (K)"
+            value={k}
+            onChange={changeK}
+            options={K_OPTIONS.map((opt) => ({
+              value: opt,
+              label: `${opt} groups`,
+              disabled: distinctCount < opt,
+              title: distinctCount < opt ? `Your data has only ${distinctCount} distinct points` : undefined,
+            }))}
+          />
           <p className="note">
             K is a hyperparameter. Try 2, 3 and 4 and watch what changes. After the run, an elbow plot shows how good
             your choice was.
@@ -1030,136 +1040,150 @@ function KMeansStages({ onStepsChange, onStateDescription, onExperiment } = {}) 
   }
 
   // ---------- stage: stepping (main simulation) ----------
+  const chip = sim.iter === 0
+    ? { state: 'ready', text: 'Ready' }
+    : sim.converged
+      ? { state: 'converged', text: 'Settled' }
+      : sim.limit
+        ? { state: 'slow', text: 'Not settled' }
+        : { state: 'descending', text: running ? 'Updating, running' : 'Updating' }
+
   return (
-    <div className="kmeans kmeans--with-nav">
-      <div className="kmeans-controls">
-        <p className="note">
-          {isExample ? 'Dataset: example data.' : 'Dataset: your own data.'} K = {k}.
-        </p>
-        {!awaitingGuess ? (
-          <div className="btnCol">
-            <button className="btn btn--primary btnP" onClick={handleStepClick} disabled={sim.done || running}>
-              Step forward
-            </button>
-            <button className="btn btn--ghost btnG" onClick={handleRun} disabled={sim.done || running}>
-              {running ? 'Running…' : 'Run to convergence'}
-            </button>
-            <button className="btn btn--ghost btnG" onClick={handleReset}>
-              Reset to step 0
-            </button>
-          </div>
-        ) : (
-          <div className="btnCol">
-            <p className="note" style={{ margin: '0 0 2px' }}>
-              Which centre do you think the ringed point will join?
-            </p>
-            {sim.centroids.map((_, i) => (
-              <button key={i} className="btn btn--secondary guessBtn" onClick={() => handleGuess(i)}>
-                <MarkerIcon index={i} />
-                <span className="guessLabel">
-                  Cluster {i + 1} ({SHAPES[i]})
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
-        <SoundToggle
-          checked={soundOn}
-          onChange={setSoundOn}
-          legend="Higher pitch means more total spread. A two-note chime means the clusters stopped changing."
-          status={soundNote}
-        />
-      </div>
+    <div className="kmeans kmeans--bench">
+      <StatusStrip
+        metrics={[
+          { label: 'Iteration', value: sim.iter },
+          { label: 'Error (total spread)', value: spread === null ? '–' : spread.toFixed(2) },
+        ]}
+        chip={chip}
+      />
 
-      <div className="kmeans-main">
-        <div className="chartRow">
-          <span className="chartTitle">{`${points.length} points, ${k} clusters`}</span>
-          <div className="readouts">
-            {sim.limit && <span>Stopped at the {MAX_ITERS} iteration limit</span>}
-            <span>
-              Total spread (SSE) <b>{spread === null ? '' : spread.toFixed(2)}</b>
-            </span>
-            <span>
-              Iteration <b>{sim.iter}</b>
-            </span>
-          </div>
+      <div className="stage">
+        <figure className="map">
+          <ChartFrame scale={scale} bounds={bounds}>
+            <PointDots points={points} scale={scale} assign={sim.assign} highlightIdx={awaitingGuess ? focusIdx : null} />
+            <CentroidMarks scale={scale} centroids={sim.centroids} />
+          </ChartFrame>
+          <Legend k={k} />
+        </figure>
+        <div className="fit">
+          <h2>{`${points.length} points, ${k} clusters`}</h2>
+          <IterationNav current={sim.iter} visited={visited} onJump={handleJump} />
         </div>
-
-        <ChartFrame scale={scale} bounds={bounds}>
-          <PointDots points={points} scale={scale} assign={sim.assign} highlightIdx={awaitingGuess ? focusIdx : null} />
-          <CentroidMarks scale={scale} centroids={sim.centroids} />
-        </ChartFrame>
-        <Legend k={k} />
-
-        {annotation && (
-          <div
-            className={`annotation${annotation.kind ? ` ${annotation.kind}` : ''}`}
-            dangerouslySetInnerHTML={{ __html: annotation.html }}
-          />
-        )}
-
-        {sim.done && (
-          <div className="reflectBox">
-            <p className="panel__label sectionLabel">What just happened</p>
-            <ol className="termList">
-              <li>Started with {points.length} points and no groups</li>
-              <li>
-                Chose K = {k}
-              </li>
-              <li>Placed {k} starting centres</li>
-              <li>Assigned every point to its nearest centre</li>
-              <li>Moved each centre to the average of its own points</li>
-              <li>
-                {sim.converged
-                  ? 'Repeated assign and update until nothing changed'
-                  : `Repeated assign and update until the ${MAX_ITERS} iteration limit, when the centres were still moving`}
-              </li>
-            </ol>
-            <ElbowPanel points={points} isExample={isExample} k={k} onTryK={changeK} />
-            <div className="formalBox">
-              <p className="panel__label formalLabel">Formal definition</p>
-              <p className="formalTerm">Centroid update</p>
-              <span className="formula">
-                c<sub>k</sub> = (1 / |C<sub>k</sub>|) × Σ<sub>x∈C<sub>k</sub></sub> x
-              </span>
-              <p>
-                The new centre is just the average (mean) position of every point currently in that group, exactly
-                what you watched happen each iteration above.
-              </p>
-            </div>
-            <div className="formalBox">
-              <p className="panel__label formalLabel">Formal definition</p>
-              <p className="formalTerm">Objective of K-Means</p>
-              <p>
-                K-Means tries to minimise the total squared distance from every point to its own cluster's centre.
-                Smaller total distance means tighter, more compact clusters. Assign, then update, then repeat, is
-                exactly how it searches for that minimum.
-              </p>
-            </div>
-            <p className="panel__label sectionLabel">Quick check-in</p>
-            <div className="choiceRow">
-              <button className="btn btn--secondary guessBtn" onClick={() => setReflectPick('good')}>
-                This is making sense
-              </button>
-              <button className="btn btn--secondary guessBtn" onClick={startOver}>
-                Try a different K
-              </button>
-              <button className="btn btn--secondary guessBtn" onClick={() => setReflectPick('confused')}>
-                Still a bit confusing
-              </button>
-            </div>
-            {reflectPick === 'good' && <p className="note">Good. Try the quiz below whenever you are ready.</p>}
-            {reflectPick === 'confused' && (
-              <p className="note">
-                Reset to step 0 and go one step at a time, guessing each point's cluster before it is revealed. That
-                usually makes the assignment rule click.
-              </p>
-            )}
-          </div>
-        )}
       </div>
 
-      <IterationNav current={sim.iter} visited={visited} onJump={handleJump} />
+      {annotation && (
+        <div
+          className={`msg${annotation.kind ? ` ${annotation.kind}` : ''}`}
+          role="status"
+          aria-live="polite"
+          dangerouslySetInnerHTML={{ __html: annotation.html }}
+        />
+      )}
+
+      <div className="controls">
+        <div className="row">
+          <div className="row-label">Data and K</div>
+          <p className="hint" style={{ margin: 0 }}>
+            {isExample ? 'Dataset: example data.' : 'Dataset: your own data.'} K = {k}.
+          </p>
+        </div>
+        <div className="row">
+          {!awaitingGuess ? (
+            <div className="actions">
+              <button type="button" className="btn btn--primary" onClick={handleStepClick} disabled={sim.done || running}>
+                Step forward <kbd>Space</kbd>
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={handleRun} disabled={sim.done || running}>
+                {running ? 'Running…' : 'Run to convergence'}
+              </button>
+              <button type="button" className="btn btn--ghost" onClick={handleReset}>
+                Reset to step 0 <kbd>R</kbd>
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="row-label">Which centre do you think the ringed point will join?</div>
+              <div className="actions">
+                {sim.centroids.map((_, i) => (
+                  <button key={i} type="button" className="btn btn--secondary guessBtn" onClick={() => handleGuess(i)}>
+                    <MarkerIcon index={i} />
+                    <span className="guessLabel">
+                      Cluster {i + 1} ({SHAPES[i]})
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="row">
+          <SoundToggle
+            checked={soundOn}
+            onChange={setSoundOn}
+            legend="Higher pitch means more total spread. A two-note chime means the clusters stopped changing."
+            status={soundNote}
+          />
+        </div>
+      </div>
+
+      {sim.done && (
+        <div className="reflectBox">
+          <p className="panel__label sectionLabel">What just happened</p>
+          <ol className="termList">
+            <li>Started with {points.length} points and no groups</li>
+            <li>Chose K = {k}</li>
+            <li>Placed {k} starting centres</li>
+            <li>Assigned every point to its nearest centre</li>
+            <li>Moved each centre to the average of its own points</li>
+            <li>
+              {sim.converged
+                ? 'Repeated assign and update until nothing changed'
+                : `Repeated assign and update until the ${MAX_ITERS} iteration limit, when the centres were still moving`}
+            </li>
+          </ol>
+          <ElbowPanel points={points} isExample={isExample} k={k} onTryK={changeK} />
+          <div className="formalBox">
+            <p className="panel__label formalLabel">Formal definition</p>
+            <p className="formalTerm">Centroid update</p>
+            <span className="formula">
+              c<sub>k</sub> = (1 / |C<sub>k</sub>|) × Σ<sub>x∈C<sub>k</sub></sub> x
+            </span>
+            <p>
+              The new centre is just the average (mean) position of every point currently in that group, exactly what
+              you watched happen each iteration above.
+            </p>
+          </div>
+          <div className="formalBox">
+            <p className="panel__label formalLabel">Formal definition</p>
+            <p className="formalTerm">Objective of K-Means</p>
+            <p>
+              K-Means tries to minimise the total squared distance from every point to its own cluster's centre.
+              Smaller total distance means tighter, more compact clusters. Assign, then update, then repeat, is exactly
+              how it searches for that minimum.
+            </p>
+          </div>
+          <p className="panel__label sectionLabel">Quick check-in</p>
+          <div className="choiceRow">
+            <button className="btn btn--secondary guessBtn" onClick={() => setReflectPick('good')}>
+              This is making sense
+            </button>
+            <button className="btn btn--secondary guessBtn" onClick={startOver}>
+              Try a different K
+            </button>
+            <button className="btn btn--secondary guessBtn" onClick={() => setReflectPick('confused')}>
+              Still a bit confusing
+            </button>
+          </div>
+          {reflectPick === 'good' && <p className="note">Good. Try the quiz below whenever you are ready.</p>}
+          {reflectPick === 'confused' && (
+            <p className="note">
+              Reset to step 0 and go one step at a time, guessing each point's cluster before it is revealed. That
+              usually makes the assignment rule click.
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 }

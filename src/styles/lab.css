@@ -1,28 +1,25 @@
-/* Virtual Labs-style layout: section sidebar on the left, content on the right. */
+/* Lab layout: section stepper on the left, content on the right.
+   On simulation pages the content is split again into a workbench and a dock (see workbench.css). */
 
 .paper.lab {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: 24px;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 36px;
   align-items: start;
 }
 
-/* ---------- sidebar ---------- */
+/* ---------- section stepper ---------- */
 .paper .labNav {
   position: sticky;
   top: 16px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  padding: 14px 10px;
+  min-width: 0;
 }
 
 .paper .labNavHead {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 6px 12px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid var(--line);
+  padding: 0 12px 12px;
 }
 
 .paper .labNavIco {
@@ -30,9 +27,9 @@
 }
 
 .paper .labNavTopic {
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
   color: var(--ink);
 }
 
@@ -45,51 +42,78 @@
 .paper .labNavItem {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 8px;
+  gap: 12px;
+  padding: 9px 12px;
   border-radius: var(--radius-control);
-  font-size: 13.5px;
-  color: var(--ink);
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--muted);
   text-decoration: none;
-  border-left: 3px solid transparent;
 }
 
 .paper .labNavItem:hover {
+  color: var(--ink);
   background: var(--hover);
 }
 
-.paper .labNavItem.active {
-  background: var(--primary-soft);
-  border-left-color: var(--primary);
-  color: var(--primary);
+.paper .labNavItem.current {
+  background: var(--raise);
+  color: var(--ink);
   font-weight: 600;
 }
 
-.paper .labNavNum {
+.paper .labNavMark {
   flex: none;
+  display: grid;
+  place-items: center;
   width: 22px;
   height: 22px;
+  border: 2px solid var(--line-strong);
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--bg);
-  font-size: 11px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--muted);
 }
 
-.paper .labNavItem.active .labNavNum {
+.paper .labNavItem.done .labNavMark {
+  background: var(--success);
+  border-color: var(--success);
+  color: var(--bg);
+}
+
+.paper .labNavItem.current .labNavMark {
   background: var(--primary);
   border-color: var(--primary);
-  color: var(--on-primary);
+}
+
+.paper .labNavItem.current .labNavMark::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--on-primary);
+}
+
+.paper .labProgress {
+  height: 6px;
+  margin: 16px 12px 6px;
+  border-radius: 3px;
+  background: var(--raise);
+  overflow: hidden;
+}
+
+.paper .labProgress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #31688e, #1f9e89, #6dcd59, #fde725);
+}
+
+.paper .labProgressNote {
+  margin: 0 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
 }
 
 .paper .labNavTeacher {
   display: block;
-  margin: 12px 6px 0;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
+  margin: 14px 12px 0;
   font-size: var(--fs-12);
   color: var(--muted);
   text-decoration: none;
@@ -110,6 +134,13 @@
   padding: 24px 28px;
 }
 
+.paper .labCard h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
 .paper .labKicker {
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -120,8 +151,8 @@
 }
 
 .paper .labLead {
-  font-size: 15px;
-  line-height: 1.6;
+  font-size: var(--fs-16);
+  line-height: 1.7;
   margin: 6px 0 20px;
   max-width: 68ch;
 }
@@ -203,17 +234,18 @@
 }
 
 .paper .theoryBlock h2 {
-  font-family: var(--font-heading);
-  font-size: 17px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
   margin: 0 0 8px;
   color: var(--ink);
 }
 
 .paper .theoryBlock p,
 .paper .theoryBlock li {
-  font-size: var(--fs-14);
-  line-height: 1.65;
-  max-width: 70ch;
+  font-size: var(--fs-16);
+  line-height: 1.7;
+  max-width: 68ch;
 }
 
 .paper .theoryBlock p {
@@ -226,7 +258,7 @@
 }
 
 .paper .theoryFormula {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: var(--fs-16);
   background: var(--primary-soft);
   border-left: 3px solid var(--primary);
@@ -238,7 +270,7 @@
 
 .paper .theoryNote {
   color: var(--muted);
-  font-size: 13px !important;
+  font-size: var(--fs-14) !important;
 }
 
 /* procedure */
@@ -252,17 +284,18 @@
 .paper .procList li {
   counter-increment: proc;
   position: relative;
+  max-width: calc(68ch + 40px);
   padding: 10px 0 10px 40px;
   border-bottom: 1px solid var(--line);
-  font-size: var(--fs-14);
-  line-height: 1.55;
+  font-size: var(--fs-16);
+  line-height: 1.7;
 }
 
 .paper .procList li::before {
   content: counter(proc);
   position: absolute;
   left: 0;
-  top: 9px;
+  top: 12px;
   width: 26px;
   height: 26px;
   border-radius: 50%;
@@ -350,6 +383,7 @@
 }
 
 .paper .refList li {
+  max-width: 68ch;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
   display: flex;
@@ -364,49 +398,49 @@
 }
 
 .paper .refList span {
-  font-size: 12.5px;
+  font-size: var(--fs-14);
+  line-height: 1.7;
   color: var(--muted);
 }
 
-/* the simulation pages bring their own .paper section: drop its outer spacing inside the lab */
-.paper.lab .labMain > .paper > h1 {
-  margin-top: 0;
-}
-
-/* ---------- small screens: sidebar becomes a scrollable strip ---------- */
-@media (max-width: 860px) {
+/* ---------- under 1180px: stepper becomes a horizontal scroller ---------- */
+@media (max-width: 1180px) {
   .paper.lab {
     grid-template-columns: minmax(0, 1fr);
-    gap: 12px;
+    gap: 16px;
   }
 
   .paper .labNav {
     position: static;
-    padding: 8px;
-    min-width: 0;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    background: var(--surface);
   }
 
   .paper .labNavHead,
-  .paper .labNavTeacher {
+  .paper .labProgress,
+  .paper .labProgressNote {
     display: none;
   }
 
   .paper .labNavList {
     display: flex;
-    overflow-x: auto;
     gap: 4px;
+    overflow-x: auto;
   }
 
   .paper .labNavItem {
     white-space: nowrap;
-    border-left: 0;
-    border-bottom: 3px solid transparent;
   }
 
-  .paper .labNavItem.active {
-    border-bottom-color: var(--primary);
+  .paper .labNavTeacher {
+    margin: 6px 12px 4px;
   }
+}
 
+/* ---------- under 820px: one column ---------- */
+@media (max-width: 820px) {
   .paper .labCard {
     padding: 18px 16px;
   }

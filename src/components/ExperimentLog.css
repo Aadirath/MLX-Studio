@@ -1,72 +1,69 @@
 .logPanel {
-  margin-top: 16px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  margin: 0;
 }
 
 .logTitle {
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 600;
   margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
 }
 
 .logList {
   list-style: none;
-  margin: 0 0 10px;
+  margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-  line-height: 1.5;
+  border-top: 1px solid var(--line);
 }
 
 .logList li {
-  padding: 8px 12px;
-  background: var(--primary-soft);
-  border-left: 3px solid var(--primary);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.logList li b {
+  display: block;
+  font-weight: 600;
 }
 
 .logEmpty {
-  margin: 0 0 10px;
-  font-size: 13px;
+  margin: 0;
   color: var(--muted);
+  font-size: 0.92rem;
 }
 
 .logActions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
+  margin-top: 12px;
 }
 
 .logBtn {
   font-family: inherit;
-  font-size: 12.5px;
-  padding: 5px 10px;
-  background: var(--primary-soft);
-  border: 1px solid var(--primary);
+  font-size: var(--fs-14);
+  font-weight: 500;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid var(--line-strong);
   border-radius: var(--radius-control);
-  color: var(--primary);
+  color: var(--ink);
   cursor: pointer;
 }
 
 .logBtn:hover:not(:disabled) {
-  background: var(--primary-soft-hover);
+  background: var(--hover);
 }
 
 .logBtn:disabled {
   opacity: 0.6;
-  cursor: default;
-}
-
-.logBtn:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+  cursor: not-allowed;
 }
 
 .logHint {
   margin: 10px 0 0;
-  font-size: 11.5px;
+  font-size: 0.8rem;
   color: var(--muted);
 }

@@ -25,13 +25,14 @@ function ExperimentLog({ topicKey, entries, onClear }) {
       {newestFirst.length === 0 ? (
         <p className="logEmpty">Run the simulation to start your log.</p>
       ) : (
-        <ul className="logList">
+        <ol className="logList" role="list">
           {newestFirst.map((e) => (
             <li key={e.n}>
-              Experiment {e.n}: {e.text}
+              <b>Experiment {e.n}</b>
+              {e.text}
             </li>
           ))}
-        </ul>
+        </ol>
       )}
       <div className="logActions">
         <button className="logBtn" type="button" onClick={onClear} disabled={entries.length === 0}>

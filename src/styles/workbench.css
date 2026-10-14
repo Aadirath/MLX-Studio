@@ -1,0 +1,548 @@
+/* ==========================================================================
+   Lab workbench: the centre column of a simulation page, and the dock beside it.
+   Shared by Linear Regression, K-Means and Gradient Descent.
+   ========================================================================== */
+
+/* ---------- title and aim ---------- */
+.paper .bench {
+  min-width: 0;
+}
+
+.paper .lab-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.paper .aim {
+  color: var(--muted);
+  margin: 10px 0 0;
+  max-width: 44rem;
+  font-size: var(--fs-16);
+  line-height: 1.5;
+}
+
+.paper .benchTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: 20px;
+}
+
+/* ---------- status strip ---------- */
+.paper .status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 32px;
+  align-items: flex-end;
+  margin: 24px 0 16px;
+}
+
+.paper .metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.paper .m-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.paper .m-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.75rem;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.paper .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 6px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.paper .chip .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.paper .chip[data-state='descending'] .dot {
+  background: var(--primary);
+}
+
+.paper .chip[data-state='converged'] .dot {
+  background: var(--success);
+}
+
+.paper .chip[data-state='diverging'] .dot,
+.paper .chip[data-state='bouncing'] .dot {
+  background: var(--danger);
+}
+
+.paper .chip[data-state='zigzag'] .dot,
+.paper .chip[data-state='slow'] .dot {
+  background: var(--warn);
+}
+
+/* ---------- stage: the picture in a bordered panel, with a small side column ---------- */
+.paper .stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  gap: 22px;
+  align-items: start;
+}
+
+.paper .map {
+  margin: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.paper .map > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.paper .axLbl {
+  font-size: 10.5px;
+  fill: var(--muted);
+  font-family: var(--font-body);
+}
+
+.paper .legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.paper .legendBar {
+  display: block;
+  width: 140px;
+  height: 8px;
+  border-radius: 4px;
+}
+
+.paper .fit h2 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+
+.paper .fit > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+}
+
+.paper .fit .eq {
+  color: var(--muted);
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+}
+
+.paper .fit .cap {
+  color: var(--muted);
+  margin: 4px 0 0;
+  font-size: 0.82rem;
+}
+
+/* a legend that sits inside a map panel */
+.paper .map .legend {
+  margin: 0;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* ---------- message line ---------- */
+.paper .msg {
+  margin: 16px 0 18px;
+  padding: 12px 16px;
+  min-height: 48px;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--surface);
+  font-size: var(--fs-14);
+  line-height: 1.55;
+}
+
+.paper .msg .tag {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.paper .msg.fbGood {
+  border-left-color: var(--success);
+}
+
+.paper .msg.fbGood .tag {
+  color: var(--success);
+}
+
+.paper .msg.fbBad {
+  border-left-color: var(--danger);
+}
+
+.paper .msg.fbBad .tag {
+  color: var(--danger);
+}
+
+.paper .chartNote {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  background: var(--danger-soft);
+  border-left: 3px solid var(--danger);
+  color: var(--danger);
+}
+
+/* ---------- controls panel: rows separated by dividers ---------- */
+.paper .controls {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  padding: 4px 20px;
+}
+
+.paper .controls .row {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.paper .controls .row:last-child {
+  border-bottom: 0;
+}
+
+.paper .row-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.paper .row-label output {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.paper .hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.paper .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.paper .actions .btn {
+  min-height: 42px;
+}
+
+.paper kbd {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  font: 500 0.75rem var(--font-body);
+  opacity: 0.85;
+}
+
+/* ---------- segmented control (radio buttons drawn as one bar) ---------- */
+.paper .seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--line-strong);
+  border-radius: calc(var(--radius-control) + 4px);
+  background: var(--bg);
+}
+
+.paper .seg label {
+  position: relative;
+}
+
+.paper .seg input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.paper .seg span {
+  display: block;
+  padding: 8px 14px;
+  border-radius: var(--radius-control);
+  color: var(--muted);
+  font-weight: 500;
+  font-size: var(--fs-14);
+  transition: background var(--transition), color var(--transition);
+}
+
+.paper .seg label:hover span {
+  color: var(--ink);
+}
+
+.paper .seg input:checked + span {
+  background: var(--raise);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.paper .seg input:focus-visible + span {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.paper .seg input:disabled + span {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paper .seg--small span {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+/* ---------- learning-rate slider: green, amber, red zones ---------- */
+.paper .zoneRange {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.paper .zoneRange::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--success) 0 var(--zone-ok),
+    var(--warn) var(--zone-ok) var(--zone-warn),
+    var(--danger) var(--zone-warn) 100%
+  );
+}
+
+.paper .zoneRange::-moz-range-track {
+  height: 8px;
+  border-radius: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--success) 0 var(--zone-ok),
+    var(--warn) var(--zone-ok) var(--zone-warn),
+    var(--danger) var(--zone-warn) 100%
+  );
+}
+
+.paper .zoneRange::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -7px;
+  border: 3px solid var(--primary);
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.paper .zoneRange::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--primary);
+  border-radius: 50%;
+  background: var(--ink);
+}
+
+.paper .lr-scale {
+  position: relative;
+  height: 40px;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.paper .lr-scale span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.paper .lr-scale b {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.paper .lr-scale .first {
+  transform: none;
+  text-align: left;
+}
+
+.paper .lr-scale .last {
+  transform: translateX(-100%);
+  text-align: right;
+}
+
+/* ---------- jump list (steps or iterations) ---------- */
+.paper .stageNavTitle {
+  margin: 14px 0 6px;
+  font-size: var(--fs-12);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.paper .stageList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paper .stageNavItem {
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: var(--fs-12);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.paper .stageNavItem:hover {
+  background: var(--hover);
+  color: var(--ink);
+}
+
+.paper .stageNavItem.active {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ---------- dock: assistant above the experiment log ---------- */
+.paper .dock {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  position: sticky;
+  top: 16px;
+  align-self: start;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 4px;
+}
+
+/* ---------- three zones on wide screens ---------- */
+.paper.lab {
+  gap: 36px;
+}
+
+.paper.lab .labMain {
+  min-width: 0;
+}
+
+.paper.lab--sim .labMain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  column-gap: 36px;
+  align-items: start;
+}
+
+.paper.lab--sim .labPrevNext {
+  grid-column: 1 / -1;
+}
+
+/* ---------- under 1180px: dock below the workbench ---------- */
+@media (max-width: 1180px) {
+  .paper.lab--sim .labMain {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 24px;
+  }
+
+  .paper .dock {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+}
+
+/* ---------- under 820px: one column ---------- */
+@media (max-width: 820px) {
+  .paper .stage {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .paper .dock {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .paper .chip {
+    margin-left: 0;
+  }
+
+  .paper .controls {
+    padding: 4px 14px;
+  }
+}

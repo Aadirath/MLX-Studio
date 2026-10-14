@@ -1,42 +1,11 @@
+/* The single-descent layout is the shared workbench (src/styles/workbench.css).
+   This file holds the mode tabs and the Compare learning rates view. */
+
 .gd {
-  display: grid;
-  grid-template-columns: 200px 1fr 260px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
   font-family: var(--font-body);
-}
-
-@media (max-width: 900px) {
-  .gd {
-    grid-template-columns: 1fr;
-  }
-}
-
-.gd-controls {
-  padding: 20px 16px;
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-@media (max-width: 900px) {
-  .gd-controls {
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-  }
-}
-
-.gd .btnCol {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.gd .btnCol button {
-  font-size: 13px;
-  padding: 8px 12px;
 }
 
 .gd .note {
@@ -46,29 +15,18 @@
   margin: 0;
 }
 
-.gd .legendBar {
-  height: 10px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--bg), var(--primary));
-  margin-bottom: 4px;
-}
-
-.gd .legendLabels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  color: var(--muted);
-}
-
-.gd-main {
-  padding: 20px 22px;
-  min-width: 0;
+.gd svg {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 .gd .chartRow {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
   margin-bottom: 6px;
 }
 
@@ -79,28 +37,14 @@
 
 .gd .readouts {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 16px;
   font-size: 12.5px;
 }
 
 .gd .readouts b {
   font-weight: 600;
-}
-
-.gd .mseVal {
-  color: var(--danger);
-}
-
-.gd svg {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.gd .axLbl {
-  font-size: 10.5px;
-  fill: var(--muted);
-  font-family: var(--font-body);
 }
 
 .gd .annotation {
@@ -121,102 +65,14 @@
   color: var(--primary);
 }
 
-.gd-side {
-  padding: 20px 18px;
-  border-left: 1px solid var(--line);
+.gd .annotation.fbGood {
+  background: var(--success-soft);
+  border-left-color: var(--success);
 }
 
-@media (max-width: 900px) {
-  .gd-side {
-    border-left: none;
-    border-top: 1px solid var(--line);
-  }
-}
-
-.gd-side h3 {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
-  margin: 0 0 10px;
-}
-
-.gd .lrControl {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.gd .lrLabel {
-  font-size: var(--fs-12);
-  color: var(--ink);
-}
-
-.gd .lrControl input[type='range'] {
-  width: 100%;
-}
-
-.gd .chartNote {
-  margin-top: 10px;
-  padding: 8px 12px;
-  font-size: 12.5px;
-  line-height: 1.5;
+.gd .annotation.fbBad {
   background: var(--danger-soft);
-  border-left: 3px solid var(--danger);
-  color: var(--danger);
-}
-
-.gd-jump {
-  margin-top: 18px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.gd .stageNavTitle {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin: 0;
-}
-
-.gd .stageList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.gd .stageNavItem {
-  width: 100%;
-  text-align: left;
-  font-family: inherit;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-control);
-  cursor: pointer;
-  color: var(--muted);
-  font-size: var(--fs-12);
-  font-weight: 500;
-  line-height: 1.4;
-  padding: 7px 8px;
-}
-
-.gd .stageNavItem:hover {
-  background: var(--hover);
-  color: var(--ink);
-}
-
-.gd .stageNavItem.active {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary);
-  font-weight: 600;
+  border-left-color: var(--danger);
 }
 
 .gd .datasetPicker {
@@ -240,35 +96,37 @@
   color: var(--on-primary);
 }
 
-.gd .readouts {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
 /* ---------- mode tabs ---------- */
 .gdModeTabs {
   display: flex;
-  gap: 0;
-  margin: 0 0 -1px;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0 0 16px;
+  border-bottom: 1px solid var(--line);
 }
 
 .gdModeTab {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-14);
   font-weight: 500;
   padding: 9px 16px;
-  border: 1px solid var(--line);
-  background: var(--bg);
+  border: 1px solid transparent;
+  border-bottom: 0;
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
   border-radius: var(--radius-control) var(--radius-control) 0 0;
-  margin-right: 4px;
+  margin-bottom: -1px;
+}
+
+.gdModeTab:hover {
+  color: var(--ink);
 }
 
 .gdModeTab.active {
-  background: var(--surface);
+  background: var(--bg);
+  border-color: var(--line);
   color: var(--primary);
-  border-bottom-color: var(--surface);
   font-weight: 600;
 }
 
@@ -276,6 +134,7 @@
 .gd.gd--compare {
   display: block;
   padding: 18px 20px;
+  border-radius: var(--radius-panel);
 }
 
 .gd .gdcRates {
@@ -354,25 +213,15 @@
   margin-right: 4px;
 }
 
+.gd svg.gdcKey {
+  width: 30px;
+  height: 10px;
+  flex: none;
+}
+
 @media (max-width: 900px) {
   .gd .gdcRates,
   .gd .gdcCharts {
     grid-template-columns: 1fr;
   }
-}
-
-.gd .annotation.fbGood {
-  background: var(--success-soft);
-  border-left-color: var(--success);
-}
-
-.gd .annotation.fbBad {
-  background: var(--danger-soft);
-  border-left-color: var(--danger);
-}
-
-.gd svg.gdcKey {
-  width: 30px;
-  height: 10px;
-  flex: none;
 }

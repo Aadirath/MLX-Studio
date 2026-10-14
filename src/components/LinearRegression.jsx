@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import GoFurtherPanel from './GoFurtherPanel.jsx'
+import StatusStrip from './lab/StatusStrip.jsx'
 import { useSessionState } from '../hooks/useSessionState.js'
 import './LinearRegression.css'
 
@@ -67,6 +68,15 @@ function computeOLS(xs, ys) {
 
 const OLS = computeOLS(X, Y)
 const OLS_MSE = mse(OLS.b1, OLS.b0)
+
+// Status chip for the line the learner is fitting: always a word, never colour alone.
+function lineChip(error) {
+  const ratio = error / OLS_MSE
+  if (ratio <= 1.05) return { state: 'converged', text: 'Nailed it' }
+  if (ratio <= 1.3) return { state: 'converged', text: 'Hot' }
+  if (ratio <= 2) return { state: 'slow', text: 'Warmer' }
+  return { state: 'diverging', text: 'Cold' }
+}
 
 const DERIVATION_STEPS = [
   {
@@ -913,9 +923,24 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
     )
   }
 
+  // The two stages where the learner moves a line get the chart first and the controls below it.
+  const benchStage = stage === 'trend' || stage === 'playground'
+  const stripError = stage === 'bestfit' ? OLS_MSE : manualMse
+  const stageNumber = STAGES.findIndex((st) => st.key === stage) + 1
+
   return (
     <>
-      <div className="linreg">
+      {(benchStage || stage === 'bestfit') && (
+        <StatusStrip
+          metrics={[
+            { label: 'Step', value: `${stageNumber} of ${STAGES.length}` },
+            { label: 'Error', value: stripError.toFixed(3) },
+            { label: 'Lowest possible', value: OLS_MSE.toFixed(3) },
+          ]}
+          chip={stage === 'bestfit' ? { state: 'converged', text: 'Best fit' } : lineChip(manualMse)}
+        />
+      )}
+      <div className={`linreg${benchStage ? ' linreg--bench' : ''}`}>
         {content}
         <StageNav stage={stage} furthestIdx={furthestIdx} onJump={setStage} />
       </div>

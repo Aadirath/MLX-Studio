@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Segmented from './lab/Segmented.jsx'
 import './AIAssistantPanel.css'
 
 const FALLBACK_HINTS = {
@@ -45,6 +46,7 @@ function plainSpeech(text) {
 function AIAssistantPanel({ topic, stateDescription = '', history = [] }) {
   const [language, setLanguage] = useState(readLanguage)
   const [question, setQuestion] = useState('')
+  const [asked, setAsked] = useState('')
   const [reply, setReply] = useState(null)
   const [failed, setFailed] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -131,6 +133,7 @@ function AIAssistantPanel({ topic, stateDescription = '', history = [] }) {
     if (!q || loading) return
     stopSpeaking()
     setSpeechError('')
+    setAsked(q)
     setLoading(true)
     setFailed(false)
     setReply(null)
@@ -154,19 +157,28 @@ function AIAssistantPanel({ topic, stateDescription = '', history = [] }) {
 
   return (
     <aside className="panel aiPanel" aria-label="AI assistant">
-      <h2 className="aiTitle">Stuck? Ask for a hint</h2>
-      <div className="aiLang" role="group" aria-label="Assistant language">
-        {LANGUAGES.map((l) => (
-          <button
-            key={l.id}
-            type="button"
-            className={`aiLangBtn${language === l.id ? ' active' : ''}`}
-            aria-pressed={language === l.id}
-            onClick={() => chooseLanguage(l.id)}
-          >
-            {l.label}
-          </button>
-        ))}
+      <div className="aiHead">
+        <h2 className="aiTitle">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M12 3l1.8 4.7L18.5 9l-4.7 1.8L12 15.5l-1.8-4.7L5.5 9l4.7-1.3L12 3zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z" />
+          </svg>
+          Stuck? Ask for a hint
+        </h2>
+        <Segmented
+          small
+          legend="Assistant language"
+          value={language}
+          onChange={chooseLanguage}
+          options={LANGUAGES.map((l) => ({ value: l.id, label: l.label }))}
+        />
+      </div>
+      <div className="aiReply aiThread" aria-live="polite">
+        {(loading || reply) && asked && <p className="bubble bubble--you">{asked}</p>}
+        {loading && <p className="bubble bubble--coach aiLoading">Thinking of a hint…</p>}
+        {!loading && failed && (
+          <p className="aiError">The assistant is unavailable right now, so here is a general hint instead.</p>
+        )}
+        {!loading && reply && <p className="bubble bubble--coach aiText">{reply}</p>}
       </div>
       <form className="aiForm" onSubmit={ask}>
         <textarea
@@ -185,13 +197,6 @@ function AIAssistantPanel({ topic, stateDescription = '', history = [] }) {
       <button className="aiNext" type="button" disabled={loading} onClick={() => send(NEXT_EXPERIMENT)}>
         Suggest my next experiment
       </button>
-      <div className="aiReply" aria-live="polite">
-        {loading && <p className="aiLoading">Thinking of a hint…</p>}
-        {!loading && failed && (
-          <p className="aiError">The assistant is unavailable right now, so here is a general hint instead.</p>
-        )}
-        {!loading && reply && <p className="aiText">{reply}</p>}
-      </div>
       {speechSupported && !loading && reply && (
         <div className="aiSpeech">
           <button
