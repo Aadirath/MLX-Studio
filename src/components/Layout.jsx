@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import './Layout.css'
+import '../styles/shell.css'
+import { BrandGlyph, MoonIcon, SunIcon } from './ShellIcons.jsx'
 
 function getInitialTheme() {
   const stored = localStorage.getItem('theme')
@@ -14,6 +16,7 @@ function Layout() {
   const isHome = location.pathname === '/'
   const isWide = location.pathname.startsWith('/topic/') || location.pathname.startsWith('/teacher/')
   const wide = isWide ? ' container--wide' : ''
+  const resolvedTheme = theme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
 
   const goBack = () => {
     if (location.key === 'default') {
@@ -41,31 +44,29 @@ function Layout() {
 
   return (
     <div className="layout">
-      <header className="site-header">
-        <div className={`container site-header__inner${wide}`}>
-          <span className="brand">MLX Studio</span>
-          <nav className="nav">
-            <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : undefined)}>
-              Home
-            </NavLink>
-            <NavLink to="/about" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-              About
-            </NavLink>
-            <NavLink to="/topic/linear-regression" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-              Linear regression
-            </NavLink>
-            <NavLink to="/topic/k-means" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-              K-means
-            </NavLink>
-            <NavLink to="/topic/gradient-descent" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-              Gradient descent
-            </NavLink>
-            <NavLink to="/teacher" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-              Teacher mode
-            </NavLink>
+      <header className="mx-top">
+        <div className="mx-top__inner">
+          <Link to="/" className="mx-brand" aria-label="MLX Studio home">
+            <BrandGlyph />
+            MLX Studio
+          </Link>
+          <nav className="mx-nav" aria-label="Main">
+            <NavLink to="/topic/linear-regression">Linear regression</NavLink>
+            <NavLink to="/topic/gradient-descent">Gradient descent</NavLink>
+            <NavLink to="/topic/k-means">K-means</NavLink>
+            <NavLink to="/about">About</NavLink>
           </nav>
-          <button type="button" className="theme-toggle" onClick={toggleTheme} aria-label="Toggle color theme">
-            {(theme ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark' ? '🌙' : '☀️'}
+          <span className="mx-spacer" />
+          <NavLink to="/teacher" className="mx-btn mx-btn--quiet">
+            Teacher mode
+          </NavLink>
+          <button
+            type="button"
+            className="mx-btn mx-btn--quiet mx-btn--icon"
+            onClick={toggleTheme}
+            aria-label={resolvedTheme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {resolvedTheme === 'dark' ? <SunIcon /> : <MoonIcon />}
           </button>
         </div>
       </header>
@@ -78,13 +79,13 @@ function Layout() {
         </div>
       )}
 
-      <main className={`site-main container${wide}`}>
+      <main className={isHome ? 'site-main site-main--home' : `site-main container${wide}`}>
         <Outlet />
       </main>
 
       <footer className="site-footer">
         <div className="container">
-          <p>Built with Vite + React. <a href="/design-concept.html" target="_blank" rel="noopener">Design concept</a></p>
+          <p>MLX Studio is a learning tool built for ET617 at IIT Bombay, with D Y Patil College of Engineering and Technology, Kolhapur. <a href="/design-concept.html" target="_blank" rel="noopener">Design concept</a></p>
         </div>
       </footer>
     </div>
