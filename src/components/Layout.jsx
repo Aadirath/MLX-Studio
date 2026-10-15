@@ -84,7 +84,7 @@ function Layout() {
 
       <footer className="site-footer">
         <div className="container">
-          <p>Built with Vite + React</p>
+          <p>Built with Vite + React. <a href="/design-concept.html" target="_blank" rel="noopener">Design concept</a></p>
         </div>
       </footer>
     </div>
