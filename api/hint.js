@@ -41,7 +41,7 @@ Rules, these are not optional:
     const response = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent',
       {
-        signal: AbortSignal.timeout(15000),
+        signal: AbortSignal.timeout(25000),
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
