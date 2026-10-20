@@ -1,5 +1,5 @@
 // Vercel serverless function: /api/hint.js
-// Uses Gemini's free API tier (no billing required for gemini-3.8-flash).
+// Uses Gemini's free API tier (no billing required for gemini-3.1-flash-lite).
 // The API key lives only here, set in Vercel's environment settings.
 
 export default async function handler(req, res) {
@@ -39,8 +39,9 @@ Rules, these are not optional:
 
   try {
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent',
       {
+        signal: AbortSignal.timeout(15000),
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,7 +50,7 @@ Rules, these are not optional:
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: 'user', parts: [{ text: safeQuestion }] }],
-          generationConfig: { maxOutputTokens: 1024, thinkingConfig: { thinkingLevel: 'low' } },
+          generationConfig: { maxOutputTokens: 1024 },
         }),
       }
     );
