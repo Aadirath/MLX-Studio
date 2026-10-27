@@ -1,0 +1,45 @@
+.modeCompare {
+  overflow-x: auto;
+  margin: 12px 0 16px;
+}
+
+.modeCompare table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.modeCompare th,
+.modeCompare td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modeCompare thead th {
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.modeCompare tbody th {
+  width: 14%;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.modeCompare--compact table {
+  font-size: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

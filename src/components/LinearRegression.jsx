@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import GoFurtherPanel from './GoFurtherPanel.jsx'
 import { useSessionState } from '../hooks/useSessionState.js'
+import { logEvent } from '../utils/logger.js'
 import './LinearRegression.css'
 import DataTable from './DataTable.jsx'
 
@@ -251,6 +252,8 @@ function NewFlatMarker() {
 }
 
 function StageNav({ stage, furthestIdx, onJump }) {
+  // A locked stage stays clickable so that it can say why it is locked.
+  const [note, setNote] = useState('')
   return (
     <div className="linreg-stagenav">
       <p className="stageNavTitle">Stages</p>
@@ -258,20 +261,36 @@ function StageNav({ stage, furthestIdx, onJump }) {
         {STAGES.map((s, i) => {
           const reached = i <= furthestIdx
           const current = s.key === stage
+          const why = `Finish "${STAGES[furthestIdx].label}" first, then "${s.label}" unlocks.`
           return (
             <li key={s.key}>
               <button
                 type="button"
                 className={`stageNavItem${current ? ' active' : ''}${!reached ? ' locked' : ''}`}
-                disabled={!reached}
-                onClick={() => onJump(s.key)}
+                aria-disabled={!reached}
+                aria-current={current ? 'step' : undefined}
+                title={reached ? undefined : why}
+                onClick={() => {
+                  if (reached) {
+                    setNote('')
+                    onJump(s.key)
+                  } else {
+                    setNote(why)
+                  }
+                }}
               >
+                {!reached && <span aria-hidden="true">🔒 </span>}
                 {s.label}
               </button>
             </li>
           )
         })}
       </ol>
+      {note && (
+        <p className="stageNavNote" role="status">
+          {note}
+        </p>
+      )}
     </div>
   )
 }
@@ -447,7 +466,10 @@ function LinearRegression({ onStepsChange, onStateDescription } = {}) {
                 key={g.key}
                 className="guessBtn"
                 disabled={answered}
-                onClick={() => setGuessPick(g.key)}
+                onClick={() => {
+                  setGuessPick(g.key)
+                  logEvent('prediction', 'linear-regression', { stage: 'predict', guess: g.key })
+                }}
                 style={{ opacity: answered && g.key !== guessPick ? 0.6 : 1 }}
               >
                 {g.label}

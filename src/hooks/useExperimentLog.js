@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { logEvent } from '../utils/logger.js'
 
 const MAX_ENTRIES = 20
 
@@ -37,11 +38,12 @@ export function useExperimentLog(topicKey) {
   }, [key, entries])
 
   const addEntry = useCallback((text) => {
+    logEvent('experiment', topicKey, { text: String(text).slice(0, 200) })
     setEntries((list) => {
       const n = list.length ? list[list.length - 1].n + 1 : 1
       return [...list, { n, text: String(text) }].slice(-MAX_ENTRIES)
     })
-  }, [])
+  }, [topicKey])
 
   const clear = useCallback(() => setEntries([]), [])
 

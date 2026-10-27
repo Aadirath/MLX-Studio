@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { logEvent } from '../utils/logger.js'
 import {
   H,
   LR_MAX,
@@ -183,6 +184,8 @@ function ErrorChart({ d, runs, upto, hoverStep, onHover }) {
 function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescription }) {
   const [rates, setRates] = useState(DEFAULT_RATES)
   const [prediction, setPrediction] = useState(null)
+  const [nudge, setNudge] = useState(false)
+  const predictRef = useRef(null)
   const [upto, setUpto] = useState(0)
   const [running, setRunning] = useState(false)
   const [hoverStep, setHoverStep] = useState(null)
@@ -192,6 +195,13 @@ function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescrip
   const lastStep = Math.max(...runs.map((r) => r.errs.length - 1))
   const finished = upto >= lastStep
   const winner = winnerOf(runs)
+
+  // Pressing a start button before predicting points the learner at the choice instead of doing nothing.
+  function askForPrediction() {
+    setNudge(true)
+    predictRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+    predictRef.current?.querySelector('button')?.focus()
+  }
 
   function reset(nextRates = rates) {
     setRates(nextRates)
@@ -282,9 +292,9 @@ function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescrip
       </div>
 
       {upto === 0 && (
-        <div className="gdcPredict">
-          <p className="note">
-            <b>Predict first:</b> which learning rate will reach the minimum first?
+        <div className={`gdcPredict${nudge && prediction === null ? ' gdcPredict--nudge' : ''}`} ref={predictRef}>
+          <p className="note gdcPredictTitle">
+            <b>Make a prediction first:</b> which learning rate will reach the minimum first?
           </p>
           <div className="datasetRow">
             {rates.map((lr, i) => (
@@ -293,7 +303,11 @@ function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescrip
                 type="button"
                 className={`btn btn--secondary datasetBtn${prediction === i ? ' active' : ''}`}
                 aria-pressed={prediction === i}
-                onClick={() => setPrediction(i)}
+                onClick={() => {
+                  setPrediction(i)
+                  setNudge(false)
+                  logEvent('prediction', 'gradient-descent', { stage: 'race', guess: lr })
+                }}
               >
                 {SERIES[i].name}: {lr.toFixed(2)}
               </button>
@@ -302,7 +316,10 @@ function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescrip
               type="button"
               className={`btn btn--secondary datasetBtn${prediction === 'none' ? ' active' : ''}`}
               aria-pressed={prediction === 'none'}
-              onClick={() => setPrediction('none')}
+              onClick={() => {
+                setPrediction('none')
+                setNudge(false)
+              }}
             >
               None of them in {COMPARE_STEPS} steps
             </button>
@@ -311,16 +328,34 @@ function GradientDescentCompare({ d, datasetPicker, onExperiment, onStateDescrip
       )}
 
       <div className="btnRowH">
-        <button type="button" className="btn btn--primary btnP" disabled={running || finished || prediction === null} onClick={() => setRunning(true)}>
+        <button
+          type="button"
+          className="btn btn--primary btnP"
+          disabled={running || finished}
+          aria-disabled={prediction === null}
+          title={prediction === null ? 'Choose your prediction above first' : undefined}
+          onClick={() => (prediction === null ? askForPrediction() : setRunning(true))}
+        >
           {running ? 'Racing…' : upto === 0 ? 'Start the race' : 'Continue'}
         </button>
-        <button type="button" className="btn btn--ghost btnG" disabled={running || finished || prediction === null} onClick={() => setUpto((u) => u + 1)}>
+        <button
+          type="button"
+          className="btn btn--ghost btnG"
+          disabled={running || finished}
+          aria-disabled={prediction === null}
+          title={prediction === null ? 'Choose your prediction above first' : undefined}
+          onClick={() => (prediction === null ? askForPrediction() : setUpto((u) => u + 1))}
+        >
           One step
         </button>
         <button type="button" className="btn btn--ghost btnG" onClick={() => reset()}>
           Reset
         </button>
-        {prediction === null && upto === 0 && <span className="note">Make a prediction to start.</span>}
+        {prediction === null && upto === 0 && (
+          <span className={`gdcNeedPrediction${nudge ? ' gdcNeedPrediction--on' : ''}`} role="status">
+            Pick one of the options above, then press Start.
+          </span>
+        )}
       </div>
 
       <div className="gdcCharts">

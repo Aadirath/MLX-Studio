@@ -302,6 +302,52 @@
 
 .gd .gdcPredict {
   margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-control);
+  background: var(--primary-soft);
+}
+
+.gd .gdcPredict .gdcPredictTitle {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.gd .gdcPredict--nudge {
+  border-color: var(--warn);
+  border-left-color: var(--warn);
+  animation: gdcNudge 0.5s ease 2;
+}
+
+.gd .gdcNeedPrediction {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.gd .gdcNeedPrediction--on {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+@keyframes gdcNudge {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gd .gdcPredict--nudge {
+    animation: none;
+  }
 }
 
 .gd .btnRowH {

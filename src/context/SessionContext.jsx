@@ -1,5 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import { useSessionState } from '../hooks/useSessionState.js'
+import { PRETEST_ITEMS } from '../data/labContent.js'
+import { conceptsMissed } from '../data/pretestMap.js'
+import { logEvent } from '../utils/logger.js'
 
 const SessionContext = createContext(null)
 
@@ -39,6 +42,15 @@ export function SessionProvider({ children }) {
   // kind is 'pre' or 'post'; correctByItem maps a question index in QUIZ[topicId] to true or false.
   const recordAssessment = useCallback(
     (topicId, kind, correctByItem) => {
+      const answered = Object.keys(correctByItem).map(Number)
+      const same = (PRETEST_ITEMS[topicId] || []).filter((i) => answered.includes(i))
+      logEvent(`${kind}test_done`, topicId, {
+        correct: answered.filter((i) => correctByItem[i]).length,
+        total: answered.length,
+        sameCorrect: same.filter((i) => correctByItem[i]).length,
+        sameTotal: same.length,
+        missed: kind === 'pre' ? conceptsMissed(topicId, correctByItem) : [],
+      })
       setAssessments((prev) => ({
         ...prev,
         [topicId]: { ...(prev[topicId] || {}), [kind]: { correctByItem, at: Date.now() } },

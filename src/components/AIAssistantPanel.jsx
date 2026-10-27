@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { logEvent } from '../utils/logger.js'
 import './AIAssistantPanel.css'
 
 const FALLBACK_HINTS = {
@@ -134,6 +135,7 @@ function AIAssistantPanel({ topic, stateDescription = '', history = [] }) {
     setLoading(true)
     setFailed(false)
     setReply(null)
+    logEvent('coach_question', topic, { q: q.slice(0, 200), lang: language })
     try {
       const res = await fetch('/api/hint', {
         method: 'POST',

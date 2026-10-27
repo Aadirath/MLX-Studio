@@ -1,0 +1,284 @@
+.theoryGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+  gap: 24px;
+  align-items: start;
+}
+
+/* The picture is the second column on wide screens but comes first in the markup, so it leads on narrow screens. */
+.theoryVisual {
+  grid-column: 2;
+  grid-row: 1;
+  position: sticky;
+  top: 12px;
+  padding: 12px 14px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card, 10px);
+}
+
+.theoryText {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .theoryGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .theoryVisual,
+  .theoryText {
+    grid-column: 1;
+    grid-row: auto;
+    position: static;
+  }
+}
+
+.paper .theoryBlock {
+  padding-left: 12px;
+  border-left: 3px solid transparent;
+  scroll-margin-top: 24px;
+}
+
+.paper .theoryBlock--active {
+  border-left-color: var(--primary);
+}
+
+.theoryShow {
+  margin-top: 6px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--primary);
+  background: transparent;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.theoryShow[aria-pressed='true'] {
+  color: var(--muted);
+  border-color: var(--line-strong);
+  cursor: default;
+}
+
+.tvTitle {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tvBlockName {
+  margin: 2px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.tvBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tvSvg {
+  width: 100%;
+  height: auto;
+  background: var(--bg, var(--surface));
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.tvAxis {
+  stroke: var(--line-strong);
+}
+.tvAxisText {
+  font-size: 10px;
+  fill: var(--muted);
+}
+.tvDot {
+  fill: var(--ink);
+}
+.tvDot--outlier {
+  fill: var(--rust);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.tvLine {
+  stroke: var(--primary);
+  stroke-width: 2.5;
+}
+.tvLine--ref {
+  stroke: var(--line-strong);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 4;
+}
+.tvLine--alt {
+  stroke: var(--rust);
+}
+.tvResidual {
+  stroke: var(--rust);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 3;
+}
+.tvSquare {
+  fill: var(--rust);
+  fill-opacity: 0.18;
+  stroke: var(--rust);
+  stroke-width: 1;
+}
+.tvMark {
+  stroke: var(--surface);
+  stroke-width: 1.2;
+}
+.tvCentre {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+.tvLink {
+  stroke: var(--line-strong);
+  stroke-width: 0.8;
+  opacity: 0.6;
+}
+.tvCurve {
+  fill: none;
+  stroke: var(--primary);
+  stroke-width: 2.5;
+}
+.tvBall {
+  fill: var(--rust);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+.tvTrail {
+  fill: var(--muted);
+  opacity: 0.5;
+}
+.tvArrow--up line {
+  stroke: var(--rust);
+  stroke-width: 2.5;
+}
+.tvArrow--up polygon {
+  fill: var(--rust);
+}
+.tvArrow--down line {
+  stroke: var(--good);
+  stroke-width: 2.5;
+}
+.tvArrow--down polygon {
+  fill: var(--good);
+}
+
+.tvControls {
+  display: grid;
+  gap: 6px;
+}
+
+.tvControls label {
+  display: grid;
+  gap: 2px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.tvControls input[type='range'] {
+  width: 100%;
+}
+
+.tvReadouts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.tvReadouts b {
+  color: var(--ink);
+}
+
+.tvOn {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.tvStatus {
+  flex-basis: 100%;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.tvCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.tvBars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 90px;
+  padding: 4px 6px 0;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+.tvBar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  height: 100%;
+  position: relative;
+}
+
+.tvBar span {
+  display: block;
+  width: 100%;
+  background: var(--line-strong);
+  border-radius: 3px 3px 0 0;
+}
+
+.tvBar--on span {
+  background: var(--primary);
+}
+
+.tvBar em {
+  position: absolute;
+  bottom: -18px;
+  font-size: 11px;
+  font-style: normal;
+  color: var(--muted);
+}
+
+.tvNote {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tvCaption {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--primary-soft);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-control);
+}
+
+.tvOff {
+  font-weight: 700;
+  fill: var(--rust);
+}

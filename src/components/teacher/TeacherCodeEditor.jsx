@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import RunBreakPanel from './RunBreakPanel.jsx'
 import { executeTeacherPythonCode, tokenizePythonLine } from './teacherAlgorithmCode.js'
 import './TeacherCodeEditor.css'
 
@@ -15,6 +16,7 @@ function TeacherCodeEditor({
   onRunCode,
 }) {
   const [isEditing, setIsEditing] = useState(false)
+  const [isRunTab, setIsRunTab] = useState(false)
   const [editedCodeText, setEditedCodeText] = useState(() => codeLines.join('\n'))
   const [execStatus, setExecStatus] = useState({ type: 'idle', message: '', details: '' })
   const [showErrorDetails, setShowErrorDetails] = useState(false)
@@ -69,7 +71,7 @@ function TeacherCodeEditor({
     if (result.success) {
       setExecStatus({
         type: 'success',
-        message: '✓ Code executed! Simulation parameters updated.',
+        message: '✓ Parameters read from the code and applied to the picture.',
         details: '',
       })
       onRunCode?.(result.extracted, editedCodeText)
@@ -113,7 +115,10 @@ function TeacherCodeEditor({
             <button
               type="button"
               className={`tw-code-mode-tab ${!isEditing ? 'active' : ''}`}
-              onClick={() => setIsEditing(false)}
+              onClick={() => {
+                setIsEditing(false)
+                setIsRunTab(false)
+              }}
               title="View synchronized execution highlights"
             >
               <span>👁</span> Visual Sync
@@ -121,10 +126,24 @@ function TeacherCodeEditor({
             <button
               type="button"
               className={`tw-code-mode-tab ${isEditing ? 'active' : ''}`}
-              onClick={() => setIsEditing(true)}
-              title="Edit Python algorithm parameters and run code"
+              onClick={() => {
+                setIsEditing(true)
+                setIsRunTab(false)
+              }}
+              title="Change numbers such as learning_rate or K in the Python and apply them to the picture"
             >
-              <span>✏</span> Edit Code
+              <span>✏</span> Edit Parameters
+            </button>
+            <button
+              type="button"
+              className={`tw-code-mode-tab ${isRunTab ? 'active' : ''}`}
+              onClick={() => {
+                setIsRunTab(true)
+                setIsEditing(false)
+              }}
+              title="Run a JavaScript version of the algorithm, break it on purpose and read the real error"
+            >
+              <span>▶</span> Run &amp; break it
             </button>
           </div>
 
@@ -140,7 +159,7 @@ function TeacherCodeEditor({
       </div>
 
       {/* 2. Step Status Banner (when viewing in sync mode) */}
-      {!isEditing && (
+      {!isEditing && !isRunTab && (
         <div className="tw-code-step-banner">
           <div className="tw-code-step-banner-left">
             <span className="tw-code-step-badge">
@@ -155,7 +174,7 @@ function TeacherCodeEditor({
       )}
 
       {/* 3. Edit Mode Toolbar (when editing code) */}
-      {isEditing && (
+      {isEditing && !isRunTab && (
         <div className="tw-code-edit-toolbar">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
@@ -176,7 +195,7 @@ function TeacherCodeEditor({
             </button>
           </div>
           <span style={{ fontSize: '11px', color: 'var(--muted)' }}>
-            Modify parameters (e.g. learning_rate, K, slope) and click Run
+            Change numbers (e.g. learning_rate, K, slope). Run applies them to the picture. For code that really runs, use Run &amp; break it.
           </span>
         </div>
       )}
@@ -209,7 +228,9 @@ function TeacherCodeEditor({
       )}
 
       {/* 5. Code Area: Either Synced Highlight View OR Textarea Editor */}
-      {isEditing ? (
+      {isRunTab ? (
+        <RunBreakPanel algorithmType={algorithmType} />
+      ) : isEditing ? (
         <div className="tw-code-editor-wrap">
           <textarea
             ref={textareaRef}
@@ -252,7 +273,7 @@ function TeacherCodeEditor({
       )}
 
       {/* 6. Diagram Reflection Notice */}
-      {!isEditing && visualNotice && (
+      {!isEditing && !isRunTab && visualNotice && (
         <div className="tw-code-notice-box">
           <span className="tw-code-notice-icon">👁</span>
           <span>

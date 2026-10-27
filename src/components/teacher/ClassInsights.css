@@ -1,0 +1,69 @@
+.classInsights {
+  margin-top: 28px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.insStats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.insStat {
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+}
+
+.insStat b {
+  display: block;
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.insStat span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.insTableWrap {
+  overflow-x: auto;
+}
+
+.insTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.insTable th,
+.insTable td {
+  text-align: left;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--line);
+}
+
+.insTwoCol {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.insList {
+  margin: 6px 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.insList li {
+  margin: 3px 0;
+}
+
+.insList li span {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}

@@ -1,0 +1,46 @@
+.aboutPage h2 {
+  margin-top: 26px;
+  font-size: 18px;
+}
+
+.aboutList {
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.aboutList li {
+  margin: 6px 0;
+}
+
+.aboutNote {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.aboutTableWrap {
+  overflow-x: auto;
+}
+
+.aboutTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.aboutTable th,
+.aboutTable td {
+  text-align: left;
+  vertical-align: top;
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.aboutTable thead th {
+  border-bottom: 2px solid var(--line-strong);
+}
+
+.aboutTable tbody th {
+  width: 20%;
+  font-weight: 600;
+}

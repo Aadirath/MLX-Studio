@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Link, NavLink, useParams } from 'react-router-dom'
 import { QUIZ, TOPICS } from '../data/topics.js'
 import { ASSUMPTIONS, LAB_CONTENT, LAB_SECTIONS, LAB_SECTION_IDS, PRETEST_ITEMS } from '../data/labContent.js'
+import { conceptFor } from '../data/pretestMap.js'
 import { scoreOn, useSession } from '../context/SessionContext.jsx'
 import AssessmentRunner from '../components/AssessmentRunner.jsx'
 import VideoEmbed from '../components/VideoEmbed.jsx'
+import TheorySplit from '../components/theory/TheorySplit.jsx'
 import LinearRegressionPage from './LinearRegressionPage.jsx'
 import KMeansPage from './KMeansPage.jsx'
 import GradientDescentPage from './GradientDescentPage.jsx'
@@ -128,7 +130,7 @@ function AimSection({ topicId, topic, content }) {
   )
 }
 
-function TheorySection({ topic, content }) {
+function TheorySection({ topicId, topic, content }) {
   return (
     <div className="labCard">
       <p className="labKicker">Theory</p>
@@ -139,21 +141,7 @@ function TheorySection({ topic, content }) {
           <VideoEmbed video={topic.video} />
         </details>
       )}
-      {content.theory.map((block) => (
-        <section className="theoryBlock" key={block.heading}>
-          <h2>{block.heading}</h2>
-          {block.text && <p>{block.text}</p>}
-          {block.list && (
-            <ul>
-              {block.list.map((li) => (
-                <li key={li}>{li}</li>
-              ))}
-            </ul>
-          )}
-          {block.formula && <div className="theoryFormula">{block.formula}</div>}
-          {block.note && <p className="theoryNote">{block.note}</p>}
-        </section>
-      ))}
+      <TheorySplit topicId={topicId} blocks={content.theory} />
     </div>
   )
 }
@@ -234,6 +222,117 @@ function ScoreBar({ label, score }) {
   )
 }
 
+// Right or wrong for each pretest question, plus where to look in the simulation. The correct answers stay hidden
+// until the posttest, so the before-and-after comparison stays fair.
+function PretestReview({ topicId, result }) {
+  const items = PRETEST_ITEMS[topicId]
+  return (
+    <ol className="reviewList" aria-label="Your pretest, question by question">
+      {items.map((index) => {
+        const ok = Boolean(result?.correctByItem?.[index])
+        const { concept, tryThis } = conceptFor(topicId, index)
+        return (
+          <li key={index} className={`reviewRow ${ok ? 'reviewRow--ok' : 'reviewRow--miss'}`}>
+            <span className="reviewMark" aria-label={ok ? 'Right' : 'Missed'}>
+              {ok ? '✓' : '✗'}
+            </span>
+            <div>
+              <p className="reviewPrompt">{QUIZ[topicId][index].prompt}</p>
+              <p className="reviewConcept">
+                <b>{concept}.</b> {ok ? 'You have this one.' : `Try this: ${tryThis}`}
+              </p>
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}
+
+// Shown above the simulation: the ideas this learner missed in the pretest and what to try for each.
+function PretestFocus({ topicId }) {
+  const { getAssessment } = useSession()
+  const pre = getAssessment(topicId).pre
+  if (!pre) {
+    return (
+      <div className="focusCard focusCard--empty">
+        <p>
+          <b>Tip:</b> take the <Link to={`/topic/${topicId}/pretest`}>pretest</Link> first. This page will then point you at
+          the ideas to look for.
+        </p>
+      </div>
+    )
+  }
+  const missed = PRETEST_ITEMS[topicId].filter((i) => pre.correctByItem?.[i] === false)
+  return (
+    <details className="focusCard" open={missed.length > 0}>
+      <summary>
+        {missed.length === 0
+          ? 'From your pretest: you answered every question right. Use the simulation to test the edges.'
+          : `From your pretest: ${missed.length} idea${missed.length === 1 ? '' : 's'} to look for while you experiment`}
+      </summary>
+      {missed.length > 0 && (
+        <ul className="focusList">
+          {missed.map((i) => {
+            const { concept, tryThis } = conceptFor(topicId, i)
+            return (
+              <li key={i}>
+                <b>{concept}.</b> {tryThis}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </details>
+  )
+}
+
+// Posttest: each pretest idea, before and after.
+function ConceptCompare({ topicId, pre, post }) {
+  if (!pre || !post) return null
+  const change = (before, after) => {
+    if (before === undefined || after === undefined) return ''
+    if (!before && after) return 'Fixed'
+    if (!before && !after) return 'Still missed'
+    if (before && !after) return 'Slipped'
+    return 'Kept'
+  }
+  return (
+    <div className="conceptCompare">
+      <p className="panel__label sectionLabel">Idea by idea</p>
+      <table className="conceptTable">
+        <thead>
+          <tr>
+            <th scope="col">Idea</th>
+            <th scope="col">Pretest</th>
+            <th scope="col">Posttest</th>
+            <th scope="col">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          {PRETEST_ITEMS[topicId].map((i) => {
+            const before = pre.correctByItem?.[i]
+            const after = post.correctByItem?.[i]
+            const { concept, tryThis } = conceptFor(topicId, i)
+            const verdict = change(before, after)
+            return (
+              <tr key={i}>
+                <th scope="row">{concept}</th>
+                <td>{before === undefined ? '–' : before ? '✓' : '✗'}</td>
+                <td>{after === undefined ? '–' : after ? '✓' : '✗'}</td>
+                <td>
+                  {verdict}
+                  {(verdict === 'Still missed' || verdict === 'Slipped') && <span className="conceptTry"> Try this: {tryThis}</span>}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function PretestSection({ topicId, topic }) {
   const { getAssessment, recordAssessment } = useSession()
   const items = PRETEST_ITEMS[topicId]
@@ -257,13 +356,18 @@ function PretestSection({ topicId, topic }) {
       ) : existing ? (
         <>
           <p className="labLead">
-            Pretest done. You will see these {items.length} questions again in the posttest, with answers, so you can see
-            how much the simulation helped.
+            Pretest done. Below is each question with a pointer to what to try in the simulation. The correct answers
+            come in the posttest, which asks these {items.length} questions again so you can see how much the simulation
+            helped.
           </p>
           <ScoreBar label="Pretest" score={score} />
+          <PretestReview topicId={topicId} result={existing} />
           <div className="labActions">
-            <Link className="btn btn--primary primaryBtn" to={`/topic/${topicId}/procedure`}>
-              Continue to the procedure →
+            <Link className="btn btn--primary primaryBtn" to={`/topic/${topicId}/simulation`}>
+              Open the simulation →
+            </Link>
+            <Link className="btn btn--ghost ghostBtn" to={`/topic/${topicId}/procedure`}>
+              Read the procedure first
             </Link>
             <button type="button" className="btn btn--ghost ghostBtn" onClick={() => setRunning(true)}>
               Retake pretest
@@ -273,8 +377,9 @@ function PretestSection({ topicId, topic }) {
       ) : (
         <>
           <p className="labLead">
-            {items.length} quick questions about {topic.name.toLowerCase()}. Answer with your best guess: this is not
-            graded and answers are not shown yet. The posttest asks the same questions after the simulation.
+            {items.length} quick questions about {topic.name.toLowerCase()}. Answer with your best guess. Afterwards you
+            will see which ones you missed and what to try in the simulation, but not the correct answers: the posttest
+            asks the same questions again, and that keeps the comparison fair.
           </p>
           <button type="button" className="btn btn--primary primaryBtn" onClick={() => setRunning(true)}>
             Start the pretest
@@ -343,6 +448,7 @@ function PosttestSection({ topicId }) {
             <ScoreBar label="Same questions, after" score={postSameScore} />
             <ScoreBar label="Full posttest" score={postAllScore} />
           </div>
+          <ConceptCompare topicId={topicId} pre={a.pre} post={a.post} />
           <div className="labActions">
             <Link className="btn btn--primary primaryBtn" to={`/topic/${topicId}/summary`}>
               See session summary
@@ -402,11 +508,17 @@ function LabPage() {
   const Simulation = SIMULATIONS[topicId]
   let body
   if (section === 'aim') body = <AimSection topicId={topicId} topic={topic} content={content} />
-  else if (section === 'theory') body = <TheorySection topic={topic} content={content} />
+  else if (section === 'theory') body = <TheorySection topicId={topicId} topic={topic} content={content} />
   else if (section === 'assumptions') body = <AssumptionsSection topic={topic} a={ASSUMPTIONS[topicId]} />
   else if (section === 'pretest') body = <PretestSection key={topicId} topicId={topicId} topic={topic} />
   else if (section === 'procedure') body = <ProcedureSection topicId={topicId} content={content} />
-  else if (section === 'simulation') body = <Simulation />
+  else if (section === 'simulation')
+    body = (
+      <>
+        <PretestFocus topicId={topicId} />
+        <Simulation />
+      </>
+    )
   else if (section === 'posttest') body = <PosttestSection key={topicId} topicId={topicId} />
   else body = <ReferencesSection content={content} />
 

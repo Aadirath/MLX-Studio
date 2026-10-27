@@ -418,9 +418,17 @@
 }
 
 .linreg .stageNavItem.locked {
-  color: var(--line-strong);
+  color: var(--muted);
+  cursor: help;
 }
 
-.linreg .stageNavItem:disabled {
-  cursor: not-allowed;
+.linreg .stageNavNote {
+  margin: 8px 0 0;
+  padding: 7px 9px;
+  font-size: var(--fs-12);
+  line-height: 1.4;
+  color: var(--ink);
+  background: var(--primary-soft);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-control);
 }

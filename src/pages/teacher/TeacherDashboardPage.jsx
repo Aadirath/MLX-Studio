@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import ClassInsights from '../../components/teacher/ClassInsights.jsx'
+import ModeCompare from '../../components/ModeCompare.jsx'
 import '../../styles/paper.css'
 
 const TEACHER_TOPICS = [
@@ -31,6 +33,12 @@ const TEACHER_TOPICS = [
   },
 ]
 
+function lockTeacherMode() {
+  fetch('/api/teacher-session', { method: 'DELETE', credentials: 'same-origin' })
+    .catch(() => {})
+    .finally(() => window.location.assign('/'))
+}
+
 function TeacherDashboardPage() {
   return (
     <section className="paper">
@@ -39,6 +47,11 @@ function TeacherDashboardPage() {
         <span className="pill" style={{ background: 'var(--blue-soft)', borderColor: 'var(--blue)', color: 'var(--blue)', fontWeight: 600 }}>
           Classroom Demonstrations
         </span>
+        {!import.meta.env.DEV && (
+          <button type="button" className="btn btn--ghost ghostBtn" onClick={lockTeacherMode}>
+            Lock teacher mode
+          </button>
+        )}
       </div>
       <p className="sub">
         Dedicated interactive environments designed for lecture demonstrations. Teach through <b>Diagram-First</b> or 
@@ -64,6 +77,11 @@ function TeacherDashboardPage() {
           </div>
         ))}
       </div>
+
+      <h2>How teacher mode differs from student mode</h2>
+      <ModeCompare />
+
+      <ClassInsights />
     </section>
   )
 }

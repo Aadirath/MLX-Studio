@@ -529,3 +529,103 @@
     min-width: 640px;
   }
 }
+
+
+/* ---------- pretest review, focus card, idea-by-idea table ---------- */
+.reviewList {
+  list-style: none;
+  margin: 14px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.reviewRow {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: var(--radius-control);
+}
+
+.reviewRow--ok {
+  border-left-color: var(--success, #2f7d4a);
+}
+
+.reviewRow--miss {
+  border-left-color: var(--warn);
+}
+
+.reviewMark {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.reviewPrompt {
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.reviewConcept {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.focusCard {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  background: var(--primary-soft);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-control);
+  font-size: 13.5px;
+}
+
+.focusCard summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.focusCard--empty p {
+  margin: 0;
+}
+
+.focusList {
+  margin: 8px 0 2px;
+  padding-left: 18px;
+  line-height: 1.55;
+}
+
+.conceptCompare {
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.conceptTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.conceptTable th,
+.conceptTable td {
+  text-align: left;
+  vertical-align: top;
+  padding: 7px 9px;
+  border-bottom: 1px solid var(--line);
+}
+
+.conceptTry {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
