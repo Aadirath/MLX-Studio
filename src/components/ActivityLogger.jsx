@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { logEvent, logOnce } from '../utils/logger.js'
+import { logEvent, logOnce, setLearner, shouldAskLearner, skipLearner } from '../utils/logger.js'
+import './LearnerPrompt.css'
 
 const TOPICS = new Set(['linear-regression', 'k-means', 'gradient-descent'])
 
