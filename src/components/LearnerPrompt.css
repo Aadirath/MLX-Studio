@@ -1,0 +1,57 @@
+.learner-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+}
+.learner-prompt__card {
+  width: min(420px, 100%);
+  padding: 20px;
+  border-radius: 12px;
+  background: #1b1d22;
+  color: #f2f3f5;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+.learner-prompt__card h2 {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+}
+.learner-prompt__card p {
+  margin: 0 0 12px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #c9ccd2;
+}
+.learner-prompt__card input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: #121316;
+  color: #f2f3f5;
+  font: inherit;
+}
+.learner-prompt__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.learner-prompt__actions button {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: transparent;
+  color: #f2f3f5;
+  font: inherit;
+  cursor: pointer;
+}
+.learner-prompt__actions button[type="submit"] {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}

@@ -1,6 +1,6 @@
-// POST /api/log  { sid, type, topic, data }  -> stores one anonymous usage event.
-// No names, emails or IP addresses are stored. If Supabase is not configured the call is accepted and dropped,
-// so the app never breaks because of logging.
+// POST /api/log  { sid, type, topic, data, learner }  -> stores one usage event.
+// learner is an optional name or roll number the learner chose to enter. No emails or IP addresses are stored.
+// If Supabase is not configured the call is accepted and dropped, so the app never breaks because of logging.
 import { insertEvent, supabaseConfigured } from './_supabase.js'
 
 const TYPES = new Set([
@@ -12,13 +12,14 @@ const TYPES = new Set([
   'prediction',
   'coach_question',
   'code_run',
+  'learner_set',
 ])
 const TOPICS = new Set(['', 'linear-regression', 'k-means', 'gradient-descent', 'teacher'])
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Use POST' })
 
-  const { sid, type, topic = '', data = {} } = req.body || {}
+  const { sid, type, topic = '', data = {}, learner = '' } = req.body || {}
   if (typeof sid !== 'string' || !/^[a-z0-9-]{8,48}$/i.test(sid)) return res.status(400).json({ error: 'bad sid' })
   if (!TYPES.has(type)) return res.status(400).json({ error: 'bad type' })
   if (!TOPICS.has(topic)) return res.status(400).json({ error: 'bad topic' })
@@ -31,6 +32,9 @@ export default async function handler(req, res) {
     safeData = {}
   }
 
+  
+  const safeLearner = typeof learner === 'string' ? learner.replace(/\p{Cc}/gu, '').trim().slice(0, 60) : ''
+  if (safeLearner) safeData = { ...safeData, learner: safeLearner }
   if (!supabaseConfigured()) return res.status(202).json({ stored: false })
   try {
     await insertEvent({ sid, type, topic, data: safeData })

@@ -1,5 +1,5 @@
-// Sends anonymous usage events to /api/log. Nothing here ever blocks or breaks the app.
-// No names, emails or IP addresses are collected. Browsers that send "Do Not Track" are respected.
+// Sends usage events to /api/log. Nothing here ever blocks or breaks the app.
+// A name or roll number is attached only if the learner chose to enter one. No emails or IP addresses are collected. Browsers that send "Do Not Track" are respected.
 
 const SID_KEY = 'mlx.sid'
 
@@ -25,13 +25,54 @@ function loggingAllowed() {
   return true
 }
 
+const LEARNER_KEY = 'mlx.learner'
+const SKIP_KEY = 'mlx.learner.skip'
+let memoryLearner = ''
+
+// The name or roll number a learner chose to enter. Empty means anonymous.
+export function getLearner() {
+  try {
+    return localStorage.getItem(LEARNER_KEY) || memoryLearner
+  } catch {
+    return memoryLearner
+  }
+}
+
+export function setLearner(value) {
+  memoryLearner = String(value || '').trim().slice(0, 60)
+  try {
+    if (memoryLearner) localStorage.setItem(LEARNER_KEY, memoryLearner)
+    else localStorage.removeItem(LEARNER_KEY)
+  } catch {
+    // storage blocked: the name lasts for this visit only
+  }
+}
+
+// True when logging is on and the learner has neither answered nor skipped the question.
+export function shouldAskLearner() {
+  if (!loggingAllowed()) return false
+  try {
+    return !getLearner() && !sessionStorage.getItem(SKIP_KEY)
+  } catch {
+    return !memoryLearner
+  }
+}
+
+export function skipLearner() {
+  try {
+    sessionStorage.setItem(SKIP_KEY, '1')
+  } catch {
+    // ignore
+  }
+}
+
 export function logEvent(type, topic = '', data = {}) {
   if (!loggingAllowed()) return
   try {
     fetch('/api/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sid: sessionId(), type, topic, data }),
+      body: JSON.stringify({ sid: sessionId(), type, topic, data, learner: getLearner() }),
       keepalive: true,
     }).catch(() => {})
   } catch {
